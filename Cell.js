@@ -120,37 +120,8 @@ Cell.prototype.update = function() {
 
   if (this.energy > 0) {
     this.energy -= this.size / 10000;
-    this.pulseAngle += this.size / 1000;
+    this.pulseAngle += this.size / 100;
   }
-};
-
-Cell.prototype.render = function() {
-  // context.fillStyle = "#FF0000";
-  // context.fillRect(this.location.x - 1, this.location.y - 1, 2, 2);
-  context.save();
-  context.translate(this.location.x - camera.x, this.location.y - camera.y);
-  context.rotate((this.heading + 90) * Math.PI / 180);
-  var centerX, centerY, controlRectWidth, growth, height, heightGrowth, width, widthGrowth;
-  growth = this.size / 100 * Math.sin(this.pulseAngle);
-  height = this.size / 10 / 2 + growth;
-  width = this.size / 20 / 2 + growth / 2;
-  controlRectWidth = width * 1.33;
-  centerX = 0;
-  centerY = 0;
-  context.beginPath();
-  context.moveTo(centerX, centerY - height / 2);
-  context.bezierCurveTo(centerX - controlRectWidth / 2, centerY - height / 2, centerX - controlRectWidth / 2, centerY + height / 2, centerX, centerY + height / 2);
-  context.bezierCurveTo(centerX + controlRectWidth / 2, centerY + height / 2, centerX + controlRectWidth / 2, centerY - height / 2, centerX, centerY - height / 2);
-  context.lineWidth = 2;
-  if (this.energy > 0) {
-    context.strokeStyle = "#" + this.color;
-  }
-  else {
-    context.strokeStyle = "#777777";
-  }
-  context.stroke();
-  context.closePath();
-  context.restore();
 };
 
 Cell.prototype.updateColor = function() {
