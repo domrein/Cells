@@ -119,8 +119,8 @@ Cell.prototype.update = function() {
   this.velocity.y *= 0.9;
 
   if (this.energy > 0) {
-    this.energy -= this.size / 10000;
-    this.pulseAngle += this.size / 100;
+    this.energy -= this.size / 1000;
+    this.pulseAngle += 1;
   }
 };
 

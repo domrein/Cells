@@ -5,7 +5,7 @@ var renderCell = function(x, y, size, color, rotation, pulseAngle) {
   context.translate(x - camera.x, y - camera.y);
   context.rotate((rotation + 90) * Math.PI / 180);
   var centerX, centerY, controlRectWidth, growth, height, heightGrowth, width, widthGrowth;
-  growth = size / 100 * Math.sin(pulseAngle * Math.PI / 180);
+  growth = size / 1 * Math.sin(pulseAngle * Math.PI / 180);
   // growth = size / 100 * Math.sin(Math.PI);
   height = size / 10 / 2 + growth;
   width = size / 20 / 2 + growth / 2;
