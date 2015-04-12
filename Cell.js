@@ -120,7 +120,7 @@ Cell.prototype.update = function() {
 
   if (this.energy > 0) {
     this.energy -= this.size / 1000;
-    this.pulseAngle += 1;
+    this.pulseAngle += this.energy / (this.size * energyToSizeRatio) * 8;
   }
 };
 

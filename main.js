@@ -1,28 +1,32 @@
 var renderCell = function(x, y, size, color, rotation, pulseAngle) {
-  // context.fillStyle = "#FF0000";
-  // context.fillRect(this.location.x - 1, this.location.y - 1, 2, 2);
-  context.save();
-  context.translate(x - camera.x, y - camera.y);
-  context.rotate((rotation + 90) * Math.PI / 180);
-  var centerX, centerY, controlRectWidth, growth, height, heightGrowth, width, widthGrowth;
-  growth = size / 1 * Math.sin(pulseAngle * Math.PI / 180);
+  x /= camera.zoom;
+  y /= camera.zoom;
+  size /= camera.zoom;
+  size += size / 10 * Math.sin(pulseAngle * Math.PI / 180);
   // growth = size / 100 * Math.sin(Math.PI);
-  height = size / 10 / 2 + growth;
-  width = size / 20 / 2 + growth / 2;
-  controlRectWidth = width * 1.33;
-  centerX = 0;
-  centerY = 0;
-  context.beginPath();
-  context.moveTo(centerX, centerY - height / 2);
-  context.bezierCurveTo(centerX - controlRectWidth / 2, centerY - height / 2, centerX - controlRectWidth / 2, centerY + height / 2, centerX, centerY + height / 2);
-  context.bezierCurveTo(centerX + controlRectWidth / 2, centerY + height / 2, centerX + controlRectWidth / 2, centerY - height / 2, centerX, centerY - height / 2);
-  context.lineWidth = 2;
   var hexColor = color.toString(16);
   hexColor = "#" + "000000".substr(0, 6 - hexColor.length) + hexColor;
-  context.strokeStyle = hexColor;
-  context.stroke();
-  context.closePath();
-  context.restore();
+  context.fillStyle = hexColor;
+  context.fillRect(x - size / 2, y - size / 2, size, size);
+  // context.save();
+  // context.translate(x - camera.x, y - camera.y);
+  // context.rotate((rotation + 90) * Math.PI / 180);
+  // var centerX, centerY, controlRectWidth, growth, height, heightGrowth, width, widthGrowth;
+  // growth = 0;
+  // height = size / 10 / 2 + growth;
+  // width = size / 20 / 2 + growth / 2;
+  // controlRectWidth = width * 1.33;
+  // centerX = 0;
+  // centerY = 0;
+  // context.beginPath();
+  // context.moveTo(centerX, centerY - height / 2);
+  // context.bezierCurveTo(centerX - controlRectWidth / 2, centerY - height / 2, centerX - controlRectWidth / 2, centerY + height / 2, centerX, centerY + height / 2);
+  // context.bezierCurveTo(centerX + controlRectWidth / 2, centerY + height / 2, centerX + controlRectWidth / 2, centerY - height / 2, centerX, centerY - height / 2);
+  // context.lineWidth = 2;
+  // context.strokeStyle = hexColor;
+  // context.stroke();
+  // context.closePath();
+  // context.restore();
 };
 
 var crudBuffer = new ArrayBuffer();
@@ -82,8 +86,12 @@ setInterval(function() {
 // };
 
 var renderCrud = function(x, y) {
+  x /= camera.zoom;
+  y /= camera.zoom;
+  var size = 20 / camera.zoom;
+
   context.fillStyle = "#BBBBBB";
-  context.fillRect(x - 1 - camera.x, y - 1 - camera.y, 2, 2);
+  context.fillRect(x - size / 2 - camera.x, y - size / 2 - camera.y, size, size);
 };
 
 var simulation = new Worker("simulation.js");
@@ -169,5 +177,5 @@ var resize = function() {
 window.onresize = resize;
 resize();
 
-var camera = {x: 0, y: 0};
+var camera = {x: 0, y: 0, zoom: 10};
 var cameraScrollSpeed = 5;

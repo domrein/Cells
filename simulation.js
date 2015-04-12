@@ -59,16 +59,16 @@ if (this.importScripts) {
   var programOpLimit = 16;
   var registerSize = 256;
   var cyclesPerSecond = 60;
-  var crudSpawnRate = 0.01;
+  var crudSpawnRate = 0.0001;
   // var crudSpawnRate = 0;
-  var cellSpawnRate = 0.001;
+  var cellSpawnRate = 0.00001;
   // var cellSpawnRate = 0;
   var programMutationRate = 0.01;
   var minimumCellSplitSize = 20;
   var crudEnergy = 500;
   var energyToSizeRatio = 50;
 
-  var world = {width: 500, height: 500};
+  var world = {width: 1440 * 10, height: 900 * 10};
 
   var crudSpawnCount = 0;
   var cellSpawnCount = 0;
@@ -108,14 +108,14 @@ if (this.importScripts) {
       var cell = cells[i];
       for (var j = cruds.length - 1; j >= 0; j --) {
         var crud = cruds[j];
-        if (cell.energy > 0 && Math.sqrt(Math.pow(cell.location.x - crud.location.x, 2) + Math.pow(cell.location.y - crud.location.y, 2) < cell.size + 10 / 5)) {
+        if (cell.energy > 0 && Math.sqrt(Math.pow(cell.location.x - crud.location.x, 2) + Math.pow(cell.location.y - crud.location.y, 2)) < cell.size) {
           cell.energy += crudEnergy;
           cruds.splice(j, 1);
         }
       }
       for (j = i - 1; j >= 0; j --) {
         var otherCell = cells[j];
-        if (Math.sqrt(Math.pow(cell.location.x - otherCell.location.x, 2) + Math.pow(cell.location.y - otherCell.location.y, 2) < cell.size / 5 + otherCell.size / 5)) {
+        if (Math.sqrt(Math.pow(cell.location.x - otherCell.location.x, 2) + Math.pow(cell.location.y - otherCell.location.y, 2)) < cell.size + otherCell.size) {
           if (cell.energy > 0 && cell.size * 0.7 > otherCell.size) {
             cell.energy += otherCell.size * energyToSizeRatio + otherCell.energy;
             cells.splice(j, 1);
@@ -146,12 +146,12 @@ if (this.importScripts) {
     var cellView = new Int32Array(cellBuffer);
     cellView[0] = 1;
     cells.forEach(function(cell, index) {
-      cellView[index * numCellProps + 0 + 1] = cell.location.x;
-      cellView[index * numCellProps + 1 + 1] = cell.location.y;
-      cellView[index * numCellProps + 2 + 1] = cell.size;
+      cellView[index * numCellProps + 0 + 1] = Math.round(cell.location.x);
+      cellView[index * numCellProps + 1 + 1] = Math.round(cell.location.y);
+      cellView[index * numCellProps + 2 + 1] = Math.round(cell.size);
       cellView[index * numCellProps + 3 + 1] = cell.energy > 0 ? parseInt(cell.color, 16) : 0x777777;
-      cellView[index * numCellProps + 4 + 1] = cell.heading;
-      cellView[index * numCellProps + 5 + 1] = cell.pulseAngle;
+      cellView[index * numCellProps + 4 + 1] = Math.round(cell.heading);
+      cellView[index * numCellProps + 5 + 1] = Math.round(cell.pulseAngle);
     });
     postMessage(cellBuffer, [cellBuffer]);
   }, 1000 / cyclesPerSecond);
