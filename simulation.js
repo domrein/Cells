@@ -53,6 +53,9 @@ grow
   no op if not enough energy to grow
 */
 
+// save off coords for crud
+// if crud.x <
+
 if (this.importScripts) {
   importScripts("Cell.js", "Crud.js");
 
@@ -64,6 +67,7 @@ if (this.importScripts) {
   var cellSpawnRate = 0.00001;
   // var cellSpawnRate = 0;
   var programMutationRate = 0.01;
+  var maxCellSize = 200;
   var minimumCellSplitSize = 20;
   var crudEnergy = 500;
   var energyToSizeRatio = 50;
@@ -108,14 +112,14 @@ if (this.importScripts) {
       var cell = cells[i];
       for (var j = cruds.length - 1; j >= 0; j --) {
         var crud = cruds[j];
-        if (cell.energy > 0 && Math.sqrt(Math.pow(cell.location.x - crud.location.x, 2) + Math.pow(cell.location.y - crud.location.y, 2)) < cell.size) {
+        if (cell.energy > 0 && Math.sqrt(Math.pow(cell.location.x - crud.location.x, 2) + Math.pow(cell.location.y - crud.location.y, 2)) < cell.size / 2) {
           cell.energy += crudEnergy;
           cruds.splice(j, 1);
         }
       }
       for (j = i - 1; j >= 0; j --) {
         var otherCell = cells[j];
-        if (Math.sqrt(Math.pow(cell.location.x - otherCell.location.x, 2) + Math.pow(cell.location.y - otherCell.location.y, 2)) < cell.size + otherCell.size) {
+        if (Math.sqrt(Math.pow(cell.location.x - otherCell.location.x, 2) + Math.pow(cell.location.y - otherCell.location.y, 2)) < cell.size / 2 + otherCell.size / 2) {
           if (cell.energy > 0 && cell.size * 0.7 > otherCell.size) {
             cell.energy += otherCell.size * energyToSizeRatio + otherCell.energy;
             cells.splice(j, 1);
@@ -129,9 +133,16 @@ if (this.importScripts) {
       }
     }
 
+    flatCruds = [];
+    cruds.forEach(function(crud) {
+      flatCruds.push(crud.x, crud.y);
+    });
+    flatCells = [];
+    cells.forEach(function(cell) {
+      flatCells.push(cell.x, cell.y, cell.size, cell.color);
+    });
+
     // transfer typed array
-    // console.log("length: " + cruds.length);
-    // console.log("before send: " + Date.now());
     var crudBuffer = new ArrayBuffer(4 + 4 * 2 * cruds.length);
     var crudView = new Int32Array(crudBuffer);
     crudView[0] = 0;
@@ -170,23 +181,12 @@ if (this.importScripts) {
     }
   };
 
-  var mutateValue = function(value, limit, max) {
-    var adjustAmount = Math.floor(Math.random() * limit);
+  var mutateValue = function(value, variance) {
+    var adjustAmount = Math.floor(Math.random() * variance);
     if (Math.random() > 0.5) {
       adjustAmount = -adjustAmount;
     }
     value += adjustAmount;
-    while (value < 0) {
-      if (max === -1) {
-        value = 0;
-      }
-      else {
-        value += max;
-      }
-    }
-    if (max !== -1 && value > max) {
-      value = value % max;
-    }
 
     return value;
   };
@@ -263,7 +263,7 @@ if (this.importScripts) {
   };
 
   var generateRandomCommand = function() {
-    switch (rand(14)) {
+    switch (rand(23)) {
       case 0:
         return ["jump", rand(16)];
       case 1:
@@ -273,66 +273,146 @@ if (this.importScripts) {
       case 3:
         return ["set", rand(registerSize), rand(32)];
       case 4:
-        return ["copy", rand(3), rand(32), rand(registerSize)];
+        return ["copy", rand(4), rand(32), rand(registerSize)];
       case 5:
-        return ["multiply", rand(registerSize), rand(registerSize), rand(registerSize)];
+        return ["+", rand(registerSize), rand(registerSize), rand(registerSize)];
       case 6:
-        return ["divide", rand(registerSize), rand(registerSize), rand(registerSize)];
+        return ["-", rand(registerSize), rand(registerSize), rand(registerSize)];
       case 7:
-        return ["mod", rand(registerSize), rand(registerSize), rand(registerSize)];
+        return ["*", rand(registerSize), rand(registerSize), rand(registerSize)];
       case 8:
-        return ["noop"];
+        return ["/", rand(registerSize), rand(registerSize), rand(registerSize)];
       case 9:
-        return ["swim"];
+        return ["%", rand(registerSize), rand(registerSize), rand(registerSize)];
       case 10:
-        return ["turnLeft"];
+        return ["==", rand(registerSize), rand(registerSize), rand(registerSize)];
       case 11:
-        return ["turnRight"];
+        return ["!=", rand(registerSize), rand(registerSize), rand(registerSize)];
       case 12:
-        return ["split"];
+        return [">", rand(registerSize), rand(registerSize), rand(registerSize)];
       case 13:
+        return ["&", rand(registerSize), rand(registerSize), rand(registerSize)];
+      case 14:
+        return ["|", rand(registerSize), rand(registerSize), rand(registerSize)];
+      case 15:
+        return ["^", rand(registerSize), rand(registerSize), rand(registerSize)];
+      case 16:
+        return ["~", rand(registerSize), rand(registerSize), rand(registerSize)];
+      case 17:
+        return ["noop"];
+      case 18:
+        return ["swim"];
+      case 19:
+        return ["turnLeft"];
+      case 20:
+        return ["turnRight"];
+      case 21:
+        return ["split"];
+      case 22:
         return ["grow"];
     }
   };
+
+
+  // register 0 is 0
+  // ["set", 0, 0],
+  // ["set", 0, 90],
+  // ["set", 0, 180],
+  // ["set", 0, 270],
+  // ["copy", 3, 0, 10], // copy crud's x into register 10
+  // ["copy", 3, 1, 11], // copy crud's y in to register 11
+  // ["copy", 1, 0, 12], // copy cell's x in to register 12
+  // ["copy", 1, 1, 13], // copy cell's y in to register 13
+  // ["copy", 1, 4, 14], // copy cell's heading in to register 14
+  // ["-", 12, 10, 20], // calc x dist
+  // ["-", 13, 11, 21], // calc y dist
+  // [">", 20, 0, 22], // x dist is greater than 0
+  // [">", 21, 0, 23], // y dist is greater than 0
+  // ["jumpIf", 22, 0], //
+  // ["label", 0] // turn right
+  // ["greaterThan", ], // if we're moving right and cell is to the right, swim
+
+  // ["label", 0], // main loop
+  // ["label", 1], // check if crud still exists
+  // ["copy", 3, 0, 2], // copy crud's x into register 2
+  // ["copy", 3, 1, 3], // copy crud's y in to register 3
+  // ["notEqualTo", 0, 2, 4], // if x is the same, set register 4
+  // ["notEqualTo", 0, 3, 5], // if y is the same, set register 5
+  // ["jumpIf", 4, 2],
+  // ["jumpIf", 5, 2],
+  // ["label", 2], // find crud
+  // ["copy", 3, 0, 0], // copy crud's x into register 0
+  // ["copy", 3, 1, 1], // copy crud's y in to register 1
+  // ["jump", 0]
+
 
   var mutateCommand = function(command) {
     var mutationParams = null;
     switch (command[0]) {
       case "jump":
-        mutationParams = [1, 8, -1];
+        mutationParams = [8];
         break;
       case "jumpIf":
-        mutationParams = [2, 8, registerSize - 1, 8, -1];
+        mutationParams = [8, 8];
         break;
       case "label":
-        mutationParams = [1, 8, -1];
+        mutationParams = [8];
         break;
       case "set":
-        mutationParams = [2, 32, registerSize - 1, 32, -1];
+        mutationParams = [32, 32];
         break;
       case "copy":
-        mutationParams = [3, 2, 2, 8, -1, 32, registerSize - 1];
+        mutationParams = [2, 8, 32];
         break;
-      case "multiply":
-        mutationParams = [3, 32, registerSize - 1, 32, registerSize - 1, 32, registerSize - 1];
+      case "*":
+        mutationParams = [32, 32, 32];
         break;
-      case "divide":
-        mutationParams = [3, 32, registerSize - 1, 32, registerSize - 1, 32, registerSize - 1];
+      case "+":
+        mutationParams = [32, 32, 32];
         break;
-      case "mod":
-        mutationParams = [3, 32, registerSize - 1, 32, registerSize - 1, 32, registerSize - 1];
+      case "-":
+        mutationParams = [32, 32, 32];
+        break;
+      case "/":
+        mutationParams = [32, 32, 32];
+        break;
+      case "%":
+        mutationParams = [32, 32, 32];
+        break;
+      case "==":
+        mutationParams = [32, 32, 32];
+        break;
+      case "!=":
+        mutationParams = [32, 32, 32];
+        break;
+      case ">":
+        mutationParams = [32, 32, 32];
+        break;
+      case "&":
+        mutationParams = [32, 32, 32];
+        break;
+      case "|":
+        mutationParams = [32, 32, 32];
+        break;
+      case "^":
+        mutationParams = [32, 32, 32];
+        break;
+      case "~":
+        mutationParams = [32, 32, 32];
         break;
     }
 
     if (mutationParams) {
-      var mutationTarget = rand(mutationParams[0]);
-      command[mutationTarget] = mutateValue(command[mutationTarget], mutationParams[mutationTarget * 2 + 1], mutationParams[mutationTarget * 2 + 2]);
+      var mutationTarget = rand(mutationParams.length / 2);
+      command[mutationTarget] = mutateValue(command[mutationTarget + 1], mutationParams[mutationTarget * 2]);
     }
   };
 
   // sim init
   var cells = [];
   var cruds = [];
+  var flatCruds = []; // resource for cell programs
+  var flatCells = []; // resource for cell programs
 
   for (var i = 0; i < 100; i ++) {
     cells.push(createCell());
