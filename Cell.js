@@ -36,7 +36,7 @@ Cell.prototype.update = function() {
   this.velocity.y *= 0.9;
 
   if (this.energy > 0) {
-    this.energy -= Math.pow(this.size, 2) / 1000;
+    this.energy -= Math.pow(this.size, 2) / 1000000;
     this.pulseAngle += this.energy / (this.size * energyToSizeRatio) * 8;
   }
   this.syncProps();
@@ -131,28 +131,12 @@ Cell.prototype.update = function() {
         break;
       case "swim":
         actionTaken = true;
-        this.energy -= Math.pow(this.size, 2) / 10000;
-        this.velocity.x += Math.cos(this.heading * Math.PI / 180) * this.size / 50;
-        this.velocity.y += Math.sin(this.heading * Math.PI / 180) * this.size / 50;
-        break;
-      case "turnLeft":
-        actionTaken = true;
-        this.energy -= Math.pow(this.size, 2) / 10000;
-        this.heading -= this.size / 100;
-        while (this.heading < 0) {
-          this.heading += 360;
-        }
-        break;
-      case "turnRight":
-        this.energy -= Math.pow(this.size, 2) / 10000;
-        actionTaken = true;
-        this.heading += this.size / 100;
-        if (this.heading > 360) {
-          this.heading %= 360;
-        }
+        this.energy -= Math.pow(this.size, 2) / 1000000;
+        this.velocity.x += Math.cos(this.register[currentCommand[1] % 360] * Math.PI / 180) * this.size / 50;
+        this.velocity.y += Math.sin(this.register[currentCommand[1] % 360] * Math.PI / 180) * this.size / 50;
         break;
       case "split":
-        this.energy -= Math.pow(this.size, 2) / 1000;
+        this.energy -= Math.pow(this.size, 2) / 10000;
         if (this.size > minimumCellSplitSize) {
           actionTaken = true;
           splitCell(this);

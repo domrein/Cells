@@ -135,11 +135,11 @@ if (this.importScripts) {
 
     flatCruds = [];
     cruds.forEach(function(crud) {
-      flatCruds.push(crud.x, crud.y);
+      flatCruds.push(crud.location.x, crud.location.y);
     });
     flatCells = [];
     cells.forEach(function(cell) {
-      flatCells.push(cell.x, cell.y, cell.size, cell.color);
+      flatCells.push(cell.location.x, cell.location.y, cell.size, cell.color);
     });
 
     // transfer typed array
@@ -246,24 +246,47 @@ if (this.importScripts) {
     var cell =  new Cell();
     var programLength = rand(512);
     // var programLength = 8;
-    for (var i = 0; i < programLength; i ++) {
-      cell.program.push(generateRandomCommand());
-    }
-    // cell.register[0] = 1;
-    // cell.program.push(["swim"]);
-    // cell.program.push(["turnRight"]);
-    // cell.program.push(["split"]);
-    // cell.program.push(["jump", 0]);
-    // cell.program.push(["label", 1]);
-    // cell.program.push(["jumpIf", 0, 1]);
-    // cell.program.push(["multiply", 0, 1]);
+    // for (var i = 0; i < programLength; i ++) {
+    //   cell.program.push(generateRandomCommand());
+    // }
+    cell.program = [
+      // register 0 is 0
+      ["set", 0, 0],
+      ["set", 1, 90],
+      ["set", 2, 180],
+      ["set", 3, 270],
+      ["copy", 3, 0, 10], // copy crud's x into register 10
+      ["copy", 3, 1, 11], // copy crud's y in to register 11
+      ["copy", 1, 0, 12], // copy cell's x in to register 12
+      ["copy", 1, 1, 13], // copy cell's y in to register 13
+      ["copy", 1, 4, 14], // copy cell's heading in to register 14
+
+      ["-", 12, 10, 20], // calc x dist
+      ["-", 13, 11, 21], // calc y dist
+      [">", 20, 0, 22], // x dist is greater than 0
+      [">", 21, 0, 23], // y dist is greater than 0
+
+      ["jumpIf", 22, 0], // if crud is to the left
+      ["swim", 0], // swim right
+      ["jump", 1],
+      ["label", 0],
+      ["swim", 2], // swim left
+      ["label", 1], // end swim left/right
+
+      ["jumpIf", 23, 2], // if crud is up
+      ["swim", 1], // swim up
+      ["jump", 3],
+      ["label", 2],
+      ["swim", 3], // swim down
+      ["label", 3], // end swim left/right
+    ];
     cell.updateColor();
 
     return cell;
   };
 
   var generateRandomCommand = function() {
-    switch (rand(23)) {
+    switch (rand(21)) {
       case 0:
         return ["jump", rand(16)];
       case 1:
@@ -301,50 +324,13 @@ if (this.importScripts) {
       case 17:
         return ["noop"];
       case 18:
-        return ["swim"];
+        return ["swim", rand(360)];
       case 19:
-        return ["turnLeft"];
-      case 20:
-        return ["turnRight"];
-      case 21:
         return ["split"];
-      case 22:
+      case 20:
         return ["grow"];
     }
   };
-
-
-  // register 0 is 0
-  // ["set", 0, 0],
-  // ["set", 0, 90],
-  // ["set", 0, 180],
-  // ["set", 0, 270],
-  // ["copy", 3, 0, 10], // copy crud's x into register 10
-  // ["copy", 3, 1, 11], // copy crud's y in to register 11
-  // ["copy", 1, 0, 12], // copy cell's x in to register 12
-  // ["copy", 1, 1, 13], // copy cell's y in to register 13
-  // ["copy", 1, 4, 14], // copy cell's heading in to register 14
-  // ["-", 12, 10, 20], // calc x dist
-  // ["-", 13, 11, 21], // calc y dist
-  // [">", 20, 0, 22], // x dist is greater than 0
-  // [">", 21, 0, 23], // y dist is greater than 0
-  // ["jumpIf", 22, 0], //
-  // ["label", 0] // turn right
-  // ["greaterThan", ], // if we're moving right and cell is to the right, swim
-
-  // ["label", 0], // main loop
-  // ["label", 1], // check if crud still exists
-  // ["copy", 3, 0, 2], // copy crud's x into register 2
-  // ["copy", 3, 1, 3], // copy crud's y in to register 3
-  // ["notEqualTo", 0, 2, 4], // if x is the same, set register 4
-  // ["notEqualTo", 0, 3, 5], // if y is the same, set register 5
-  // ["jumpIf", 4, 2],
-  // ["jumpIf", 5, 2],
-  // ["label", 2], // find crud
-  // ["copy", 3, 0, 0], // copy crud's x into register 0
-  // ["copy", 3, 1, 1], // copy crud's y in to register 1
-  // ["jump", 0]
-
 
   var mutateCommand = function(command) {
     var mutationParams = null;
@@ -399,6 +385,9 @@ if (this.importScripts) {
         break;
       case "~":
         mutationParams = [32, 32, 32];
+        break;
+      case "swim":
+        mutationParams = [32];
         break;
     }
 
