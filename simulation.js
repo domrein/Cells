@@ -71,6 +71,7 @@ if (this.importScripts) {
   var minimumCellSplitSize = 20;
   var crudEnergy = 500;
   var energyToSizeRatio = 50;
+  var energyConsumptionEfficiency = 0.7; // amount of energy preserved when a cell is consumed
 
   var world = {width: 1440 * 10, height: 900 * 10};
 
@@ -86,7 +87,7 @@ if (this.importScripts) {
     }
     cellSpawnCount += cellSpawnRate * world.width / 500 * world.height / 500;
     while (cellSpawnCount > 1) {
-      cells.push(createCell());
+      cells.push(createCell("random"));
       cellSpawnCount --;
     }
 
@@ -121,26 +122,19 @@ if (this.importScripts) {
         var otherCell = cells[j];
         if (Math.sqrt(Math.pow(cell.location.x - otherCell.location.x, 2) + Math.pow(cell.location.y - otherCell.location.y, 2)) < cell.size / 2 + otherCell.size / 2) {
           if (cell.energy > 0 && cell.size * 0.7 > otherCell.size) {
-            cell.energy += otherCell.size * energyToSizeRatio + otherCell.energy;
+            cell.energy += otherCell.size * energyToSizeRatio + otherCell.energy * energyConsumptionEfficiency;
             cells.splice(j, 1);
             i --;
           }
           if (otherCell.energy > 0 && otherCell.size * 0.7 > cell.size) {
-            otherCell.energy += cell.size * energyToSizeRatio + cell.energy;
+            otherCell.energy += cell.size * energyToSizeRatio + cell.energy * energyConsumptionEfficiency;
             cells.splice(i, 1);
           }
         }
       }
     }
 
-    flatCruds = [];
-    cruds.forEach(function(crud) {
-      flatCruds.push(crud.location.x, crud.location.y);
-    });
-    flatCells = [];
-    cells.forEach(function(cell) {
-      flatCells.push(cell.location.x, cell.location.y, cell.size, cell.color);
-    });
+    syncFlatArrays();
 
     // transfer typed array
     var crudBuffer = new ArrayBuffer(4 + 4 * 2 * cruds.length);
@@ -202,11 +196,10 @@ if (this.importScripts) {
 
     childOne.velocity.x /= 2;
     childOne.velocity.y /= 2;
+    childOne.updateHeading();
     childTwo.velocity.x = -childOne.velocity.x;
     childTwo.velocity.y = -childOne.velocity.y;
-
-    childOne.heading += randFlip(45);
-    childTwo.heading = childTwo.heading + 180 + randFlip(45);
+    childTwo.updateHeading();
 
     childOne.mutateProgram();
     childTwo.mutateProgram();
@@ -242,44 +235,79 @@ if (this.importScripts) {
     return clone;
   };
 
-  var createCell = function() {
+  var createCell = function(type) {
     var cell =  new Cell();
-    var programLength = rand(512);
-    // var programLength = 8;
-    // for (var i = 0; i < programLength; i ++) {
-    //   cell.program.push(generateRandomCommand());
-    // }
-    cell.program = [
-      // register 0 is 0
-      ["set", 0, 0],
-      ["set", 1, 90],
-      ["set", 2, 180],
-      ["set", 3, 270],
-      ["copy", 3, 0, 10], // copy crud's x into register 10
-      ["copy", 3, 1, 11], // copy crud's y in to register 11
-      ["copy", 1, 0, 12], // copy cell's x in to register 12
-      ["copy", 1, 1, 13], // copy cell's y in to register 13
-      ["copy", 1, 4, 14], // copy cell's heading in to register 14
+    if (type === "random") {
+      var programLength = rand(512);
+      // var programLength = 8;
+      for (var i = 0; i < programLength; i ++) {
+        cell.program.push(generateRandomCommand());
+      }
+    }
+    else if (type === "vegetable") {
+      cell.program = [
+        ["noop"],
+      ];
+    }
+    else if (type === "seeker") {
+      cell.program = [
+        // register 0 is 0
+        // init code
+        ["label", 6],
+        ["set", 0, 0],
+        ["set", 1, 90],
+        ["set", 2, 180],
+        ["set", 3, 270],
+        ["set", 4, 100], // split target
+        ["set", 5, 5000], // grow target
 
-      ["-", 12, 10, 20], // calc x dist
-      ["-", 13, 11, 21], // calc y dist
-      [">", 20, 0, 22], // x dist is greater than 0
-      [">", 21, 0, 23], // y dist is greater than 0
+        ["label", 4], // beginning of main loop
 
-      ["jumpIf", 22, 0], // if crud is to the left
-      ["swim", 0], // swim right
-      ["jump", 1],
-      ["label", 0],
-      ["swim", 2], // swim left
-      ["label", 1], // end swim left/right
+        // copy crud x,y at 0
+        ["copy", 3, 0, 10], // copy crud's x into register 10
+        ["copy", 3, 1, 11], // copy crud's y in to register 11
 
-      ["jumpIf", 23, 2], // if crud is up
-      ["swim", 1], // swim up
-      ["jump", 3],
-      ["label", 2],
-      ["swim", 3], // swim down
-      ["label", 3], // end swim left/right
-    ];
+        ["copy", 1, 0, 12], // copy cell's x in to register 12
+        ["copy", 1, 1, 13], // copy cell's y in to register 13
+        ["copy", 1, 4, 14], // copy cell's heading in to register 14
+
+        ["-", 12, 10, 20], // calc x dist
+        ["-", 13, 11, 21], // calc y dist
+        [">", 20, 0, 22], // x dist is greater than 0
+        [">", 21, 0, 23], // y dist is greater than 0
+
+        ["jumpIf", 22, 0], // if crud is to the left
+        ["swim", 0], // swim right
+        ["jump", 1],
+
+        ["label", 0],
+        ["swim", 2], // swim left
+        ["label", 1], // end swim left/right
+
+        ["jumpIf", 23, 2], // if crud is up
+        ["swim", 1], // swim up
+        ["jump", 3],
+
+        ["label", 2],
+        ["swim", 3], // swim down
+        ["label", 3], // end swim left/right
+
+        // split if large enough
+        // ["breakPoint"],
+        ["copy", 1, 5, 15],
+        [">", 4, 15, 24], // size target is greater than size
+        ["jumpIf", 24, 5],
+        ["split"],
+
+        ["label", 5],
+        // // grow if enough energy
+        ["copy", 1, 6, 16],
+        [">", 5, 16, 25], // y dist is greater than 0
+        ["jumpIf", 25, 4],
+        ["grow"],
+        ["jump", 4], // go back to top of main loop
+      ];
+    }
     cell.updateColor();
 
     return cell;
@@ -397,16 +425,29 @@ if (this.importScripts) {
     }
   };
 
+  var syncFlatArrays = function() {
+    flatCruds = [];
+    cruds.forEach(function(crud) {
+      flatCruds.push(crud.location.x, crud.location.y);
+    });
+    flatCells = [];
+    cells.forEach(function(cell) {
+      flatCells.push(cell.location.x, cell.location.y, cell.size, cell.color);
+    });
+  };
+
   // sim init
   var cells = [];
   var cruds = [];
   var flatCruds = []; // resource for cell programs
   var flatCells = []; // resource for cell programs
 
+  cells.push(createCell("seeker"));
   for (var i = 0; i < 100; i ++) {
-    cells.push(createCell());
+    cells.push(createCell("random"));
   }
   for (i = 0; i < 1000; i ++) {
     cruds.push(new Crud());
   }
+  syncFlatArrays();
 }

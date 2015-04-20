@@ -25,7 +25,7 @@ Cell.prototype.syncProps = function() {
   this.props[4] = Math.round(this.heading);
   this.props[5] = Math.round(this.size);
   this.props[6] = Math.round(this.energy);
-  this.props[7] = Math.round(this.color);
+  this.props[7] = parseInt(this.color, 16);
 };
 
 Cell.prototype.update = function() {
@@ -51,6 +51,9 @@ Cell.prototype.update = function() {
     // console.log(currentCommand);
     this.cursor ++;
     switch (currentCommand[0]) {
+      case "breakPoint":
+        var foo = 1;
+        break;
       case "jump":
         for (var j = 0; j < this.program.length; j ++) {
           if (this.program[j][0] === "label" && this.program[j][1] === currentCommand[1]) {
@@ -60,7 +63,7 @@ Cell.prototype.update = function() {
         }
         break;
       case "jumpIf":
-        if (this.register[currentCommand[1] % registerSize]) {
+        if (this.register[Math.abs(currentCommand[1]) % registerSize]) {
           for (j = 0; j < this.program.length; j ++) {
             if (this.program[j][0] === "label" && this.program[j][1] === currentCommand[2]) {
               this.cursor = j;
@@ -72,59 +75,59 @@ Cell.prototype.update = function() {
       case "label":
         break;
       case "set":
-        this.register[currentCommand[1] % registerSize] = currentCommand[2];
+        this.register[Math.abs(currentCommand[1]) % registerSize] = currentCommand[2];
         break;
       case "copy":
         var resource = null;
-        switch (currentCommand[1] % 4) {
+        switch (Math.abs(currentCommand[1]) % 4) {
           case 0: resource = this.register; break;
           case 1: resource = this.props; break;
           case 2: resource = flatCells; break;
           case 3: resource = flatCruds; break;
         }
-        this.register[currentCommand[3] % registerSize] = resource[currentCommand[2] % resource.length];
+        this.register[Math.abs(currentCommand[3]) % registerSize] = Math.round(resource[Math.abs(currentCommand[2]) % resource.length]) || 0;
         break;
       case "+":
-        this.register[currentCommand[3] % registerSize] = this.register[currentCommand[1] % registerSize] + this.register[currentCommand[2] % registerSize];
+        this.register[Math.abs(currentCommand[3]) % registerSize] = this.register[Math.abs(currentCommand[1]) % registerSize] + this.register[Math.abs(currentCommand[2]) % registerSize];
         break;
       case "-":
-        this.register[currentCommand[3] % registerSize] = this.register[currentCommand[1] % registerSize] - this.register[currentCommand[2] % registerSize];
+        this.register[Math.abs(currentCommand[3]) % registerSize] = this.register[Math.abs(currentCommand[1]) % registerSize] - this.register[Math.abs(currentCommand[2]) % registerSize];
         break;
       case "*":
-        this.register[currentCommand[3] % registerSize] = this.register[currentCommand[1] % registerSize] * this.register[currentCommand[2] % registerSize];
+        this.register[Math.abs(currentCommand[3]) % registerSize] = this.register[Math.abs(currentCommand[1]) % registerSize] * this.register[Math.abs(currentCommand[2]) % registerSize];
         break;
       case "/":
-        if (this.register[currentCommand[2] % registerSize] !== 0) {
-          this.register[currentCommand[3] % registerSize] = Math.round(this.register[currentCommand[1] % registerSize] / this.register[currentCommand[2] % registerSize]);
+        if (this.register[Math.abs(currentCommand[2]) % registerSize] !== 0) {
+          this.register[Math.abs(currentCommand[3]) % registerSize] = Math.round(this.register[Math.abs(currentCommand[1]) % registerSize] / this.register[Math.abs(currentCommand[2]) % registerSize]);
         }
         break;
       case "%":
-        if (this.register[currentCommand[2] % registerSize] !== 0) {
-          this.register[currentCommand[3] % registerSize] = this.register[currentCommand[1] % registerSize] % this.register[currentCommand[2] % registerSize];
+        if (this.register[Math.abs(currentCommand[2]) % registerSize] !== 0) {
+          this.register[Math.abs(currentCommand[3]) % registerSize] = this.register[Math.abs(currentCommand[1]) % registerSize] % this.register[Math.abs(currentCommand[2]) % registerSize];
         }
         break;
       case "==":
-        if (this.register[currentCommand[1] % registerSize] === this.register[currentCommand[2] % registerSize]) {
-          this.register[currentCommand[3] % registerSize] = 1;
+        if (this.register[Math.abs(currentCommand[1]) % registerSize] === this.register[Math.abs(currentCommand[2]) % registerSize]) {
+          this.register[Math.abs(currentCommand[3]) % registerSize] = 1;
         }
         else {
-          this.register[currentCommand[3] % registerSize] = 0;
+          this.register[Math.abs(currentCommand[3]) % registerSize] = 0;
         }
         break;
       case "!=":
-        if (this.register[currentCommand[1] % registerSize] !== this.register[currentCommand[2] % registerSize]) {
-          this.register[currentCommand[3] % registerSize] = 1;
+        if (this.register[Math.abs(currentCommand[1]) % registerSize] !== this.register[Math.abs(currentCommand[2]) % registerSize]) {
+          this.register[Math.abs(currentCommand[3]) % registerSize] = 1;
         }
         else {
-          this.register[currentCommand[3] % registerSize] = 0;
+          this.register[Math.abs(currentCommand[3]) % registerSize] = 0;
         }
         break;
       case ">":
-        if (this.register[currentCommand[1] % registerSize] > this.register[currentCommand[2] % registerSize]) {
-          this.register[currentCommand[3] % registerSize] = 1;
+        if (this.register[Math.abs(currentCommand[1]) % registerSize] > this.register[Math.abs(currentCommand[2]) % registerSize]) {
+          this.register[Math.abs(currentCommand[3]) % registerSize] = 1;
         }
         else {
-          this.register[currentCommand[3] % registerSize] = 0;
+          this.register[Math.abs(currentCommand[3]) % registerSize] = 0;
         }
         break;
       case "noop":
@@ -132,8 +135,8 @@ Cell.prototype.update = function() {
       case "swim":
         actionTaken = true;
         this.energy -= Math.pow(this.size, 2) / 1000000;
-        this.velocity.x += Math.cos(this.register[currentCommand[1] % 360] * Math.PI / 180) * this.size / 50;
-        this.velocity.y += Math.sin(this.register[currentCommand[1] % 360] * Math.PI / 180) * this.size / 50;
+        this.velocity.x += Math.cos(this.register[Math.abs(currentCommand[1]) % 360] * Math.PI / 180) * this.size / 50;
+        this.velocity.y += Math.sin(this.register[Math.abs(currentCommand[1]) % 360] * Math.PI / 180) * this.size / 50;
         break;
       case "split":
         this.energy -= Math.pow(this.size, 2) / 10000;
@@ -154,6 +157,11 @@ Cell.prototype.update = function() {
       this.cursor = 0;
     }
   }
+  this.updateHeading();
+};
+
+Cell.prototype.updateHeading = function() {
+  this.heading = this.heading * 0.9 + (Math.atan2(this.velocity.y, this.velocity.x) * 180 / Math.PI + 90) * 0.1;
 };
 
 Cell.prototype.updateColor = function() {

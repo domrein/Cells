@@ -3,30 +3,26 @@ var renderCell = function(x, y, size, color, rotation, pulseAngle) {
   y /= camera.zoom;
   size /= camera.zoom;
   size += size / 10 * Math.sin(pulseAngle * Math.PI / 180);
-  // growth = size / 100 * Math.sin(Math.PI);
   var hexColor = color.toString(16);
   hexColor = "#" + "000000".substr(0, 6 - hexColor.length) + hexColor;
-  context.fillStyle = hexColor;
-  context.fillRect(x - size / 2, y - size / 2, size, size);
-  // context.save();
-  // context.translate(x - camera.x, y - camera.y);
-  // context.rotate((rotation + 90) * Math.PI / 180);
-  // var centerX, centerY, controlRectWidth, growth, height, heightGrowth, width, widthGrowth;
-  // growth = 0;
-  // height = size / 10 / 2 + growth;
-  // width = size / 20 / 2 + growth / 2;
-  // controlRectWidth = width * 1.33;
-  // centerX = 0;
-  // centerY = 0;
-  // context.beginPath();
-  // context.moveTo(centerX, centerY - height / 2);
-  // context.bezierCurveTo(centerX - controlRectWidth / 2, centerY - height / 2, centerX - controlRectWidth / 2, centerY + height / 2, centerX, centerY + height / 2);
-  // context.bezierCurveTo(centerX + controlRectWidth / 2, centerY + height / 2, centerX + controlRectWidth / 2, centerY - height / 2, centerX, centerY - height / 2);
-  // context.lineWidth = 2;
-  // context.strokeStyle = hexColor;
-  // context.stroke();
-  // context.closePath();
-  // context.restore();
+
+  // draw box
+  // context.fillStyle = hexColor;
+  // context.fillRect(x - size / 2 - camera.x, y - size / 2 - camera.y, size, size);
+
+  // draw oval
+  context.save();
+  context.translate(x - camera.x, y - camera.y);
+  context.rotate((rotation + 90) * Math.PI / 180);
+  context.beginPath();
+  context.moveTo(-size / 2, 0);
+  context.bezierCurveTo(-size / 2, size / 3, size / 2, size / 3, size / 2, 0);
+  context.bezierCurveTo(size / 2, -size / 3, -size / 2, -size / 3, -size / 2, 0);
+  context.lineWidth = 2;
+  context.strokeStyle = hexColor;
+  context.stroke();
+  context.closePath();
+  context.restore();
 };
 
 var crudBuffer = new ArrayBuffer();
@@ -38,28 +34,38 @@ setInterval(function() {
   // TODO: update camera
   // mark "renderScene as true if camera updated"
   // move camera
-  // if (rightDown) {
-  //   camera.x += cameraScrollSpeed;
-  //   if (camera.x + canvas.width > world.width) {
-  //     camera.x = world.width - canvas.width;
-  //   }
-  // }
-  // if (leftDown) {
-  //   camera.x -= cameraScrollSpeed;
-  //   if (camera.x < 0) {
-  //     camera.x = 0;
-  //   }
-  // }
+  var worldWidth = 1440;
+  var worldHeight = 900;
+  if (upDown) {
+    camera.y -= cameraScrollSpeed;
+    if (camera.y < 0) {
+      camera.y = 0;
+    }
+  }
+  if (downDown) {
+    camera.y += cameraScrollSpeed;
+    // TODO: read world.width from simulation
+    if (camera.y + canvas.height > worldHeight) {
+      camera.y = worldHeight - canvas.height;
+    }
+  }
+  if (rightDown) {
+    camera.x += cameraScrollSpeed;
+    // TODO: read world.width from simulation
+    if (camera.x + canvas.width > worldWidth) {
+      camera.x = worldWidth - canvas.width;
+    }
+  }
+  if (leftDown) {
+    camera.x -= cameraScrollSpeed;
+    if (camera.x < 0) {
+      camera.x = 0;
+    }
+  }
   if (renderScene) {
     context.fillStyle = "rgba(20, 20, 20, 0.8)";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    // cruds.forEach(function(crud) {
-    //   renderCrud(crud);
-    // });
-    // cells.forEach(function(cell) {
-    //   renderCell(cell);
-    // });
     var numCruds = (crudBuffer.byteLength - 4) / 4 / 2;
     for (var i = 0; i < numCruds; i ++) {
       renderCrud(crudView[i * 2], crudView[i * 2 + 1]);
@@ -79,11 +85,6 @@ setInterval(function() {
     renderScene = false;
   }
 }, 1000 / 60);
-
-// var renderCrud = function(crud) {
-//   context.fillStyle = "#BBBBBB";
-//   context.fillRect(crud.x - 1 - camera.x, crud.y - 1 - camera.y, 2, 2);
-// };
 
 var renderCrud = function(x, y) {
   x /= camera.zoom;
@@ -146,26 +147,40 @@ simulation.onmessage = function(event) {
 //   simulation.postMessage("hello!");
 // }
 
-// TODO: camera controls
-// var rightDown = false;
-// var leftDown = false;
-// var onKeyDown = function(event) {
-//   if (event.keyCode === 39) {
-//     rightDown = true;
-//   }
-//   else if (event.keyCode == 37) {
-//     leftDown = true;
-//   }
-// };
-//
-// var onKeyUp = function(event) {
-//   if (event.keyCode === 39) {
-//     rightDown = false;
-//   }
-//   else if (event.keyCode == 37) {
-//     leftDown = false;
-//   }
-// };
+// Camera controls
+var upDown = false;
+var downDown = false;
+var leftDown = false;
+var rightDown = false;
+var onKeyDown = function(event) {
+  if (event.keyCode === 38) {
+    upDown = true;
+  }
+  else if (event.keyCode === 40) {
+    downDown = true;
+  }
+  else if (event.keyCode === 39) {
+    rightDown = true;
+  }
+  else if (event.keyCode == 37) {
+    leftDown = true;
+  }
+};
+
+var onKeyUp = function(event) {
+  if (event.keyCode === 38) {
+    upDown = false;
+  }
+  else if (event.keyCode === 40) {
+    downDown = false;
+  }
+  else if (event.keyCode === 39) {
+    rightDown = false;
+  }
+  else if (event.keyCode == 37) {
+    leftDown = false;
+  }
+};
 
 var canvas = document.getElementById("canvas");
 var context = canvas.getContext("2d");
