@@ -111,15 +111,21 @@ if (this.importScripts) {
     // run collision checks
     for (var i = cells.length - 1; i >= 0; i --) {
       var cell = cells[i];
-      for (var j = cruds.length - 1; j >= 0; j --) {
-        var crud = cruds[j];
-        if (cell.energy > 0 && Math.sqrt(Math.pow(cell.location.x - crud.location.x, 2) + Math.pow(cell.location.y - crud.location.y, 2)) < cell.size / 2) {
-          cell.energy += crudEnergy;
-          cruds.splice(j, 1);
+      var j;
+      if (cell.energy > 0) {
+        for (j = cruds.length - 1; j >= 0; j --) {
+          var crud = cruds[j];
+          if (Math.sqrt(Math.pow(cell.location.x - crud.location.x, 2) + Math.pow(cell.location.y - crud.location.y, 2)) < cell.size / 2) {
+            cell.energy += crudEnergy;
+            cruds.splice(j, 1);
+          }
         }
       }
       for (j = i - 1; j >= 0; j --) {
         var otherCell = cells[j];
+        if (cell.energy <= 0 && otherCell.energy <= 0) {
+          continue;
+        }
         if (Math.sqrt(Math.pow(cell.location.x - otherCell.location.x, 2) + Math.pow(cell.location.y - otherCell.location.y, 2)) < cell.size / 2 + otherCell.size / 2) {
           if (cell.energy > 0 && cell.size * 0.7 > otherCell.size) {
             cell.energy += otherCell.size * energyToSizeRatio + otherCell.energy * energyConsumptionEfficiency;
