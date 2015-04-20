@@ -161,7 +161,7 @@ Cell.prototype.update = function() {
 };
 
 Cell.prototype.updateHeading = function() {
-  this.heading = this.heading * 0.9 + (Math.atan2(this.velocity.y, this.velocity.x) * 180 / Math.PI + 90) * 0.1;
+  this.heading = Math.atan2(this.velocity.y, this.velocity.x) * 180 / Math.PI + 90;
 };
 
 Cell.prototype.updateColor = function() {
