@@ -135,8 +135,8 @@ Cell.prototype.update = function() {
       case "swim":
         actionTaken = true;
         this.energy -= Math.pow(this.size, 2) / 1000000;
-        this.velocity.x += Math.cos(this.register[Math.abs(currentCommand[1]) % 360] * Math.PI / 180) * this.size / 50;
-        this.velocity.y += Math.sin(this.register[Math.abs(currentCommand[1]) % 360] * Math.PI / 180) * this.size / 50;
+        this.velocity.x += Math.cos((this.register[Math.abs(currentCommand[1]) % registerSize] % 360) * Math.PI / 180) * this.size / 50;
+        this.velocity.y += Math.sin((this.register[Math.abs(currentCommand[1]) % registerSize] % 360) * Math.PI / 180) * this.size / 50;
         break;
       case "split":
         this.energy -= Math.pow(this.size, 2) / 10000;
