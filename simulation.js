@@ -428,6 +428,8 @@ if (this.importScripts) {
     if (mutationParams) {
       var mutationTarget = rand(mutationParams.length / 2);
       command[mutationTarget] = mutateValue(command[mutationTarget + 1], mutationParams[mutationTarget * 2]);
+      var mutationTarget = rand(mutationParams.length);
+      command[mutationTarget + 1] = mutateValue(command[mutationTarget + 1], mutationParams[mutationTarget]);
     }
   };
 
