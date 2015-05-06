@@ -1,9 +1,11 @@
+"use strict";
+
 var Cell = function() {
-  this.location = {x: Math.random() * world.width, y: Math.random() * world.height};
-  this.velocity = {x: 0, y: 0};
-  this.heading = Math.random() * 360;
   this.size = 100;
   this.energy = this.size * energyToSizeRatio;
+  this.rect = new Rectangle(Math.random() * world.width, Math.random() * world.height, this.size, this.size);
+  this.velocity = {x: 0, y: 0};
+  this.heading = Math.random() * 360;
   this.color = 0;
   this.props = [0, 0, 0, 0, 0, 0, 0, 0];
   this.syncProps();
@@ -15,11 +17,13 @@ var Cell = function() {
   this.program = [];
   this.cursor = 0; // the current location in the program
   this.pulseAngle = 0;
+  this.type = "cell";
+  this.alive = true;
 };
 
 Cell.prototype.syncProps = function() {
-  this.props[0] = Math.round(this.location.x);
-  this.props[1] = Math.round(this.location.y);
+  this.props[0] = Math.round(this.rect.x);
+  this.props[1] = Math.round(this.rect.y);
   this.props[2] = Math.round(this.velocity.x);
   this.props[3] = Math.round(this.velocity.y);
   this.props[4] = Math.round(this.heading);
@@ -30,8 +34,8 @@ Cell.prototype.syncProps = function() {
 
 Cell.prototype.update = function() {
   // move and slow down
-  this.location.x += this.velocity.x;
-  this.location.y += this.velocity.y;
+  this.rect.x += this.velocity.x;
+  this.rect.y += this.velocity.y;
   this.velocity.x *= 0.9;
   this.velocity.y *= 0.9;
 
@@ -156,6 +160,10 @@ Cell.prototype.update = function() {
     if (this.cursor >= this.program.length) {
       this.cursor = 0;
     }
+  }
+  // TODO: this makes the cells disappear when they die. Having the corpses is really cool.
+  if (this.energy <= 0) {
+    this.alive = false;
   }
   this.updateHeading();
 };

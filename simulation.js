@@ -56,15 +56,20 @@ grow
 // save off coords for crud
 // if crud.x <
 
+"use strict";
+
+var world = {width: 1440 * 10, height: 900 * 10};
+
 if (this.importScripts) {
-  importScripts("Cell.js", "Crud.js");
+  importScripts("Cell.js", "Crud.js", "collision.js");
 
   var programOpLimit = 16;
   var registerSize = 256;
   var cyclesPerSecond = 60;
   var crudSpawnRate = 0.0001;
   // var crudSpawnRate = 0;
-  var cellSpawnRate = 0.00001;
+  // var cellSpawnRate = 0.00001;
+  var cellSpawnRate = 0.0001;
   // var cellSpawnRate = 0;
   var programMutationRate = 0.01;
   var maxCellSize = 200;
@@ -73,7 +78,6 @@ if (this.importScripts) {
   var energyToSizeRatio = 50;
   var energyConsumptionEfficiency = 0.7; // amount of energy preserved when a cell is consumed
 
-  var world = {width: 1440 * 10, height: 900 * 10};
 
   var crudSpawnCount = 0;
   var cellSpawnCount = 0;
@@ -82,7 +86,7 @@ if (this.importScripts) {
     // spawn crud and cells
     crudSpawnCount += crudSpawnRate * world.width / 500 * world.height / 500;
     while (crudSpawnCount > 1) {
-      cruds.push(new Crud());
+      createCrud();
       crudSpawnCount --;
     }
     cellSpawnCount += cellSpawnRate * world.width / 500 * world.height / 500;
@@ -94,49 +98,32 @@ if (this.importScripts) {
     // block cells from leaving world
     cells.forEach(function(cell) {
       cell.update();
-      if (cell.location.x < 0) {
-        cell.location.x = 0;
+      if (cell.rect.x < 0) {
+        cell.rect.x = 0;
       }
-      else if (cell.location.x > world.width) {
-        cell.location.x = world.width;
+      else if (cell.rect.x > world.width) {
+        cell.rect.x = world.width;
       }
-      if (cell.location.y < 0) {
-        cell.location.y = 0;
+      if (cell.rect.y < 0) {
+        cell.rect.y = 0;
       }
-      else if (cell.location.y > world.height) {
-        cell.location.y = world.height;
+      else if (cell.rect.y > world.height) {
+        cell.rect.y = world.height;
       }
     });
 
-    // run collision checks
+    runCollision();
+    // remove dead entities
     for (var i = cells.length - 1; i >= 0; i --) {
-      var cell = cells[i];
-      var j;
-      if (cell.energy > 0) {
-        for (j = cruds.length - 1; j >= 0; j --) {
-          var crud = cruds[j];
-          if (Math.sqrt(Math.pow(cell.location.x - crud.location.x, 2) + Math.pow(cell.location.y - crud.location.y, 2)) < cell.size / 2) {
-            cell.energy += crudEnergy;
-            cruds.splice(j, 1);
-          }
-        }
+      if (!cells[i].alive) {
+        cells.splice(i, 1);
       }
-      for (j = i - 1; j >= 0; j --) {
-        var otherCell = cells[j];
-        if (cell.energy <= 0 && otherCell.energy <= 0) {
-          continue;
-        }
-        if (Math.sqrt(Math.pow(cell.location.x - otherCell.location.x, 2) + Math.pow(cell.location.y - otherCell.location.y, 2)) < cell.size / 2 + otherCell.size / 2) {
-          if (cell.energy > 0 && cell.size * 0.7 > otherCell.size) {
-            cell.energy += otherCell.size * energyToSizeRatio + otherCell.energy * energyConsumptionEfficiency;
-            cells.splice(j, 1);
-            i --;
-          }
-          if (otherCell.energy > 0 && otherCell.size * 0.7 > cell.size) {
-            otherCell.energy += cell.size * energyToSizeRatio + cell.energy * energyConsumptionEfficiency;
-            cells.splice(i, 1);
-          }
-        }
+    }
+    for (i = cruds.length - 1; i >= 0; i --) {
+      var crud = cruds[i];
+      if (!crud.alive) {
+        cruds.splice(i, 1);
+        tree.removeChild(crud);
       }
     }
 
@@ -147,8 +134,8 @@ if (this.importScripts) {
     var crudView = new Int32Array(crudBuffer);
     crudView[0] = 0;
     cruds.forEach(function(crud, index) {
-      crudView[index * 2 + 1] = crud.location.x;
-      crudView[index * 2 + 1 + 1] = crud.location.y;
+      crudView[index * 2 + 1] = crud.rect.x;
+      crudView[index * 2 + 1 + 1] = crud.rect.y;
     });
     postMessage(crudBuffer, [crudBuffer]);
 
@@ -157,8 +144,8 @@ if (this.importScripts) {
     var cellView = new Int32Array(cellBuffer);
     cellView[0] = 1;
     cells.forEach(function(cell, index) {
-      cellView[index * numCellProps + 0 + 1] = Math.round(cell.location.x);
-      cellView[index * numCellProps + 1 + 1] = Math.round(cell.location.y);
+      cellView[index * numCellProps + 0 + 1] = Math.round(cell.rect.x);
+      cellView[index * numCellProps + 1 + 1] = Math.round(cell.rect.y);
       cellView[index * numCellProps + 2 + 1] = Math.round(cell.size);
       cellView[index * numCellProps + 3 + 1] = cell.energy > 0 ? parseInt(cell.color, 16) : 0x777777;
       cellView[index * numCellProps + 4 + 1] = Math.round(cell.heading);
@@ -191,6 +178,12 @@ if (this.importScripts) {
     return value;
   };
 
+  var createCrud = function() {
+    var crud = new Crud();
+    cruds.push(crud);
+    tree.addChild(crud);
+  }
+
   var splitCell = function(parent) {
     var childOne = cloneCell(parent);
     var childTwo = cloneCell(parent);
@@ -222,8 +215,8 @@ if (this.importScripts) {
 
   var cloneCell = function(cell) {
     var clone = new Cell();
-    clone.location.x = cell.location.x;
-    clone.location.y = cell.location.y;
+    clone.rect.x = cell.rect.x;
+    clone.rect.y = cell.rect.y;
     clone.velocity = {x: cell.velocity.x, y: cell.velocity.y};
     clone.heading = cell.heading;
     clone.size = cell.size;
@@ -426,8 +419,6 @@ if (this.importScripts) {
     }
 
     if (mutationParams) {
-      var mutationTarget = rand(mutationParams.length / 2);
-      command[mutationTarget] = mutateValue(command[mutationTarget + 1], mutationParams[mutationTarget * 2]);
       var mutationTarget = rand(mutationParams.length);
       command[mutationTarget + 1] = mutateValue(command[mutationTarget + 1], mutationParams[mutationTarget]);
     }
@@ -436,11 +427,11 @@ if (this.importScripts) {
   var syncFlatArrays = function() {
     flatCruds = [];
     cruds.forEach(function(crud) {
-      flatCruds.push(crud.location.x, crud.location.y);
+      flatCruds.push(crud.rect.x, crud.rect.y);
     });
     flatCells = [];
     cells.forEach(function(cell) {
-      flatCells.push(cell.location.x, cell.location.y, cell.size, cell.color);
+      flatCells.push(cell.rect.x, cell.rect.y, cell.size, cell.color);
     });
   };
 
@@ -450,12 +441,14 @@ if (this.importScripts) {
   var flatCruds = []; // resource for cell programs
   var flatCells = []; // resource for cell programs
 
-  cells.push(createCell("seeker"));
-  for (var i = 0; i < 100; i ++) {
+  // cells.push(createCell("vegetable"));
+  // cells.push(createCell("seeker"));
+  var i;
+  for (i = 0; i < 100; i ++) {
     cells.push(createCell("random"));
   }
-  for (i = 0; i < 1000; i ++) {
-    cruds.push(new Crud());
+  for (i = 0; i < 2000; i ++) {
+    createCrud();
   }
   syncFlatArrays();
 }
