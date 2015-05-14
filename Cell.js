@@ -143,8 +143,8 @@ Cell.prototype.update = function() {
         this.velocity.y += Math.sin((this.register[Math.abs(currentCommand[1]) % registerSize] % 360) * Math.PI / 180) * this.size / 50;
         break;
       case "split":
-        this.energy -= Math.pow(this.size, 2) / 10000;
         if (this.size > minimumCellSplitSize) {
+          this.energy -= Math.pow(this.size, 2) / 10000;
           actionTaken = true;
           splitCell(this);
         }
@@ -154,6 +154,14 @@ Cell.prototype.update = function() {
           actionTaken = true;
           this.energy -= energyToSizeRatio;
           this.size ++;
+        }
+        else {
+          // copy of split logic
+          if (this.size > minimumCellSplitSize) {
+            this.energy -= Math.pow(this.size, 2) / 10000;
+            actionTaken = true;
+            splitCell(this);
+          }
         }
         break;
     }
