@@ -9,25 +9,14 @@ var runCollision = function() {
     var cell = cells[i];
     tree.addChild(cell);
   }
-  // for (i = 0; i < cruds.length; i ++) {
-  //   var crud = cruds[i];
-  //   tree.addChild(crud);
-  // }
-
-  // tree.collideChildren();
+  
   for (i = 0; i < leafs.length; i ++) {
     leafs[i].collideChildren();
   }
 
-  // childCount = 0;
-  // tree.countChildren();
-  // console.log("child count: " + childCount);
-  // leafCount = 0;
-  // tree.countLeafs();
-  // console.log("leaf count: " + leafCount);
 }
 var leafs = [];
-var splitSize = 2000;
+var splitSize = 1000;
 
 // let's make a quad tree, but it isn't rebuilt each frame?
 var Rectangle = function(x, y, width, height) {
@@ -142,35 +131,18 @@ Branch.prototype.collideChildren = function() {
             otherChild.alive = false;
             child.energy += crudEnergy;
           }
+          else {
+            if (otherChild.size * 0.5 > child.size) {
+              otherChild.energy += child.size * energyToSizeRatio + child.energy * energyConsumptionEfficiency;
+              child.alive = false;
+            }
+            else if (child.size * 0.5 > otherChild.size) {
+              child.energy += otherChild.size * energyToSizeRatio + otherChild.energy * energyConsumptionEfficiency;
+              otherChild.alive = false;
+            }
+          }
         }
       }
-
-      // if (cell.energy > 0) {
-      //   for (j = cruds.length - 1; j >= 0; j --) {
-      //     var crud = cruds[j];
-      //     if (Math.sqrt(Math.pow(cell.rect.x - crud.rect.x, 2) + Math.pow(cell.rect.y - crud.rect.y, 2)) < cell.size / 2) {
-      //       cell.energy += crudEnergy;
-      //       cruds.splice(j, 1);
-      //     }
-      //   }
-      // }
-      // for (j = i - 1; j >= 0; j --) {
-      //   var otherCell = cells[j];
-      //   if (cell.energy <= 0 && otherCell.energy <= 0) {
-      //     continue;
-      //   }
-      //   if (Math.sqrt(Math.pow(cell.rect.x - otherCell.rect.x, 2) + Math.pow(cell.rect.y - otherCell.rect.y, 2)) < cell.size / 2 + otherCell.size / 2) {
-      //     if (cell.energy > 0 && cell.size * 0.7 > otherCell.size) {
-      //       cell.energy += otherCell.size * energyToSizeRatio + otherCell.energy * energyConsumptionEfficiency;
-      //       cells.splice(j, 1);
-      //       i --;
-      //     }
-      //     if (otherCell.energy > 0 && otherCell.size * 0.7 > cell.size) {
-      //       otherCell.energy += cell.size * energyToSizeRatio + cell.energy * energyConsumptionEfficiency;
-      //       cells.splice(i, 1);
-      //     }
-      //   }
-      // }
     }
   }
   else {
@@ -179,27 +151,5 @@ Branch.prototype.collideChildren = function() {
     });
   }
 };
-
-// Branch.prototype.countChildren = function() {
-//   if (this.isLeaf) {
-//     childCount += this.children.length;
-//   }
-//   else {
-//     this.children.forEach(function(child) {
-//       child.countChildren();
-//     });
-//   }
-// }
-
-// Branch.prototype.countLeafs = function() {
-//   if (this.isLeaf) {
-//     leafCount++;
-//   }
-//   else {
-//     this.children.forEach(function(child) {
-//       child.countLeafs();
-//     });
-//   }
-// }
 
 var tree = new Branch(0, 0, world.width, world.height);
