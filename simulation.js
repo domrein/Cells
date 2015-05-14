@@ -58,7 +58,7 @@ grow
 
 "use strict";
 
-var world = {width: 1440 * 10, height: 900 * 10};
+var world = {width: 25000, height: 25000};
 
 if (this.importScripts) {
   importScripts("Cell.js", "Crud.js", "collision.js");

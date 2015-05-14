@@ -4,27 +4,30 @@ var renderCell = function(x, y, size, color, rotation, pulseAngle) {
   x /= camera.zoom;
   y /= camera.zoom;
   size /= camera.zoom;
-  size += size / 10 * Math.sin(pulseAngle * Math.PI / 180);
-  var hexColor = color.toString(16);
-  hexColor = "#" + "000000".substr(0, 6 - hexColor.length) + hexColor;
+  // TODO: see if this check is really an optimization
+  if (x + size > camera.x || x - size < camera.x + worldWidth / camera.zoom || y + size > camera.y || y - size < camera.y + worldHeight / camera.zoom) {
+    size += size / 10 * Math.sin(pulseAngle * Math.PI / 180);
+    var hexColor = color.toString(16);
+    hexColor = "#" + "000000".substr(0, 6 - hexColor.length) + hexColor;
 
-  // draw box
-  // context.fillStyle = hexColor;
-  // context.fillRect(x - size / 2 - camera.x, y - size / 2 - camera.y, size, size);
+    // draw box
+    // context.fillStyle = hexColor;
+    // context.fillRect(x - size / 2 - camera.x, y - size / 2 - camera.y, size, size);
 
-  // draw oval
-  context.save();
-  context.translate(x - camera.x, y - camera.y);
-  context.rotate((rotation + 90) * Math.PI / 180);
-  context.beginPath();
-  context.moveTo(-size / 2, 0);
-  context.bezierCurveTo(-size / 2, size / 3, size / 2, size / 3, size / 2, 0);
-  context.bezierCurveTo(size / 2, -size / 3, -size / 2, -size / 3, -size / 2, 0);
-  context.lineWidth = 2;
-  context.strokeStyle = hexColor;
-  context.stroke();
-  context.closePath();
-  context.restore();
+    // draw oval
+    context.save();
+    context.translate(x - camera.x, y - camera.y);
+    context.rotate((rotation + 90) * Math.PI / 180);
+    context.beginPath();
+    context.moveTo(-size / 2, 0);
+    context.bezierCurveTo(-size / 2, size / 3, size / 2, size / 3, size / 2, 0);
+    context.bezierCurveTo(size / 2, -size / 3, -size / 2, -size / 3, -size / 2, 0);
+    context.lineWidth = 2;
+    context.strokeStyle = hexColor;
+    context.stroke();
+    context.closePath();
+    context.restore();
+  }
 };
 
 var crudBuffer = new ArrayBuffer();
@@ -32,36 +35,49 @@ var crudView = new Int32Array();
 var cellBuffer = new ArrayBuffer();
 var cellView = new Int32Array();
 var renderScene = false;
+
+var worldWidth = 25000;
+var worldHeight = 25000;
 setInterval(function() {
   // TODO: update camera
   // mark "renderScene as true if camera updated"
   // move camera
-  var worldWidth = 1440;
-  var worldHeight = 900;
-  if (upDown) {
-    camera.y -= cameraScrollSpeed;
+  if (controls.up) {
+    camera.y -= camera.scrollSpeed;
     if (camera.y < 0) {
       camera.y = 0;
     }
   }
-  if (downDown) {
-    camera.y += cameraScrollSpeed;
+  if (controls.down) {
+    camera.y += camera.scrollSpeed;
     // TODO: read world.width from simulation
-    if (camera.y + canvas.height > worldHeight) {
-      camera.y = worldHeight - canvas.height;
+    if (camera.y + canvas.height > worldHeight / camera.zoom) {
+      camera.y = worldHeight / camera.zoom - canvas.height;
     }
   }
-  if (rightDown) {
-    camera.x += cameraScrollSpeed;
+  if (controls.right) {
+    camera.x += camera.scrollSpeed;
     // TODO: read world.width from simulation
-    if (camera.x + canvas.width > worldWidth) {
-      camera.x = worldWidth - canvas.width;
+    if (camera.x + canvas.width > worldWidth / camera.zoom) {
+      camera.x = worldWidth / camera.zoom - canvas.width;
     }
   }
-  if (leftDown) {
-    camera.x -= cameraScrollSpeed;
+  if (controls.left) {
+    camera.x -= camera.scrollSpeed;
     if (camera.x < 0) {
       camera.x = 0;
+    }
+  }
+  if (controls.zoomIn) {
+    camera.zoom -= camera.zoomSpeed;
+    if (camera.zoom < 1) {
+      camera.zoom = 1;
+    }
+  }
+  if (controls.zoomOut) {
+    camera.zoom += camera.zoomSpeed;
+    if (camera.zoom > 100) {
+      camera.zoom = 100;
     }
   }
   if (renderScene) {
@@ -150,37 +166,53 @@ simulation.onmessage = function(event) {
 // }
 
 // Camera controls
-var upDown = false;
-var downDown = false;
-var leftDown = false;
-var rightDown = false;
+var controls = {
+  up: false,
+  down: false,
+  left: false,
+  right: false,
+  zoomOut: false,
+  zoomIn: false,
+};
 var onKeyDown = function(event) {
   if (event.keyCode === 38) {
-    upDown = true;
+    controls.up = true;
   }
   else if (event.keyCode === 40) {
-    downDown = true;
+    controls.down = true;
   }
   else if (event.keyCode === 39) {
-    rightDown = true;
+    controls.right = true;
   }
   else if (event.keyCode == 37) {
-    leftDown = true;
+    controls.left = true;
+  }
+  else if (event.keyCode == 189) {
+    controls.zoomOut = true;
+  }
+  else if (event.keyCode == 187) {
+    controls.zoomIn = true;
   }
 };
 
 var onKeyUp = function(event) {
   if (event.keyCode === 38) {
-    upDown = false;
+    controls.up = false;
   }
   else if (event.keyCode === 40) {
-    downDown = false;
+    controls.down = false;
   }
   else if (event.keyCode === 39) {
-    rightDown = false;
+    controls.right = false;
   }
   else if (event.keyCode == 37) {
-    leftDown = false;
+    controls.left = false;
+  }
+  else if (event.keyCode == 189) {
+    controls.zoomOut = false;
+  }
+  else if (event.keyCode == 187) {
+    controls.zoomIn = false;
   }
 };
 
@@ -194,5 +226,4 @@ var resize = function() {
 window.onresize = resize;
 resize();
 
-var camera = {x: 0, y: 0, zoom: 10};
-var cameraScrollSpeed = 5;
+var camera = {x: 0, y: 0, zoom: 10, scrollSpeed: 5, zoomSpeed: 0.1};
