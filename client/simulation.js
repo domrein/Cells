@@ -63,7 +63,7 @@ var world = {width: 25000, height: 25000};
 if (this.importScripts) {
   importScripts("Cell.js", "Crud.js", "collision.js");
 
-  var programOpLimit = 16;
+  var programOpLimit = 32;
   var registerSize = 256;
   var cyclesPerSecond = 60;
   var crudSpawnRate = 0.0001;
@@ -77,7 +77,6 @@ if (this.importScripts) {
   var crudEnergy = 500;
   var energyToSizeRatio = 50;
   var energyConsumptionEfficiency = 0.7; // amount of energy preserved when a cell is consumed
-
 
   var crudSpawnCount = 0;
   var cellSpawnCount = 0;
