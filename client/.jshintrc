@@ -1,0 +1,7 @@
+{
+  "camelcase": true,
+  "curly": true,
+  "globalstrict": true,
+  "strict": true,
+  "browser": true
+}
