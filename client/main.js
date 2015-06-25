@@ -80,6 +80,9 @@ setInterval(function() {
       camera.zoom = 100;
     }
   }
+  if (controls.up || controls.down || controls.left || controls.right || controls.zoomIn || controls.zoomOut) {
+    renderScene = true;
+  }
   if (renderScene) {
     context.fillStyle = "rgba(20, 20, 20, 0.8)";
     context.fillRect(0, 0, canvas.width, canvas.height);
