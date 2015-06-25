@@ -236,3 +236,30 @@ Cell.prototype.mutateProgram = function() {
 
   this.updateColor();
 };
+
+Cell.prototype.deserialize = function(data) {
+  this.size = data.size;
+  this.energy = data.energy;
+  this.velocity.x = data.velocity.x;
+  this.velocity.y = data.velocity.y;
+  this.rect.x = data.location.x;
+  this.rect.y = data.location.y;
+  this.rect.width = this.size;
+  this.rect.height = this.size;
+  this.cursor = data.cursor;
+  this.program = data.program;
+  this.registers = data.registers;
+};
+
+Cell.prototype.serialize = function() {
+  // size, energy, velocity, cursor, program, registers, location
+  return JSON.stringify({
+    size: this.size,
+    energy: this.energy,
+    velocity: {x: this.velocity.x, y:this.velocity.y},
+    location: {x: this.rect.x, y:this.rect.y},
+    cursor: this.cursor,
+    program: this.program,
+    registers: this.registers,
+  });
+};

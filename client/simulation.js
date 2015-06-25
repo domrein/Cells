@@ -434,6 +434,58 @@ if (this.importScripts) {
     });
   };
 
+  var deserialize = function(state) {
+    world.width = state.settings.width;
+    world.height = state.settings.height;
+    programOpLimit = state.settings.programOpLimit;
+    registerSize = state.settings.registerSize;
+    cyclesPerSecond = state.settings.cyclesPerSecond;
+    crudSpawnRate = state.settings.crudSpawnRate;
+    cellSpawnRate = state.settings.cellSpawnRate;
+    programMutationRate = state.settings.programMutationRate;
+    maxCellSize = state.settings.maxCellSize;
+    minimumCellSplitSize = state.settings.minimumCellSplitSize;
+    crudEnergy = state.settings.crudEnergy;
+    energyToSizeRatio = state.settings.energyToSizeRatio;
+    energyConsumptionEfficiency = state.settings.energyConsumptionEfficiency;
+    crudSpawnCount = state.settings.crudSpawnCount;
+    cellSpawnCount = state.settings.cellSpawnCount;
+    cells = state.cells.map(function(cellData) {
+      var cell = new Cell();
+      newCell.deserialize(cellData)
+      return cell;
+    });
+    cruds = [];
+  };
+
+  var serialize = function() {
+    return JSON.stringify({
+      settings: {
+        width: world.width,
+        height: world.height,
+        programOpLimit: programOpLimit,
+        registerSize: registerSize,
+        cyclesPerSecond: cyclesPerSecond,
+        crudSpawnRate: crudSpawnRate,
+        cellSpawnRate: cellSpawnRate,
+        programMutationRate: programMutationRate,
+        maxCellSize: maxCellSize,
+        minimumCellSplitSize: minimumCellSplitSize,
+        crudEnergy: crudEnergy,
+        energyToSizeRatio: energyToSizeRatio,
+        energyConsumptionEfficiency: energyConsumptionEfficiency,
+        crudSpawnCount: crudSpawnCount,
+        cellSpawnCount: cellSpawnCount,
+      },
+      cells: cells.map(function(cell) {
+        return cell.serialize();
+      }),
+      cruds: cruds.map(function(crud) {
+        return crud.serialize();
+      }),
+    });
+  };
+
   // sim init
   var cells = [];
   var cruds = [];

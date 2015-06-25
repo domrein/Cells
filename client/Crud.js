@@ -5,3 +5,7 @@ var Crud = function() {
   this.type = "crud";
   this.alive = true;
 };
+
+Crud.prototype.serialize = function() {
+  return JSON.stringify({x: this.rect.x, y: this.rect.y});
+};
