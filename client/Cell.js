@@ -33,6 +33,13 @@ Cell.prototype.syncProps = function() {
 };
 
 Cell.prototype.update = function() {
+  // TODO: figure out a better way to make sure size and width/height are the same
+  if (this.rect.width != this.size) {
+    this.rect.width = this.size;
+  }
+  if (this.rect.height != this.size) {
+    this.rect.height = this.size;
+  }
   // move and slow down
   this.rect.x += this.velocity.x;
   this.rect.y += this.velocity.y;
