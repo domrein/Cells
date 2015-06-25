@@ -1,0 +1,9 @@
+{
+  "esnext": true,
+  "camelcase": true,
+  "curly": true,
+  "globalstrict": true,
+  "strict": true,
+  "node": true,
+  "loopfunc": true
+}

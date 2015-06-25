@@ -1,0 +1,14 @@
+{
+  "name": "cellsApi",
+  "version": "0.0.1",
+  "dependencies": {
+    "async": "1.2.1",
+    "redis": "0.12.1",
+    "tean": "1.0.10"
+  },
+  "devDependencies": {
+    "gulp": "3.9.0",
+    "gulp-jshint": "1.10.0",
+    "gulp-nodemon": "2.0.2"
+  }
+}
