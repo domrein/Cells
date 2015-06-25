@@ -39,8 +39,8 @@ var renderScene = false;
 var worldWidth = 25000;
 var worldHeight = 25000;
 setInterval(function() {
-  // TODO: update camera
-  // mark "renderScene as true if camera updated"
+  stats.begin();
+
   // move camera
   if (controls.up) {
     camera.y -= camera.scrollSpeed;
@@ -102,6 +102,7 @@ setInterval(function() {
     }
     renderScene = false;
   }
+  stats.end();
 }, 1000 / 60);
 
 var renderCrud = function(x, y) {
