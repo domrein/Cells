@@ -2,7 +2,7 @@
 
 var Cell = function() {
   this.size = 100;
-  this.energy = this.size * energyToSizeRatio;
+  this._energy = this.size * energyToSizeRatio;
   this.rect = new Rectangle(Math.random() * world.width, Math.random() * world.height, this.size, this.size);
   this.velocity = {x: 0, y: 0};
   this.heading = Math.random() * 360;
@@ -32,6 +32,19 @@ Cell.prototype.syncProps = function() {
   this.props[7] = parseInt(this.color, 16);
 };
 
+Object.defineProperty(Cell.prototype, "energy", {
+  get: function() {
+    return this._energy;
+  },
+  // TODO: handle excess energy (spawn crud?)
+  set: function(value) {
+    this._energy = value;
+    if (this._energy > maxCellSize * energyToSizeRatio) {
+      this._energy = maxCellSize * energyToSizeRatio;
+    }
+  },
+});
+
 Cell.prototype.update = function() {
   // TODO: figure out a better way to make sure size and width/height are the same
   if (this.rect.width != this.size) {
@@ -43,11 +56,12 @@ Cell.prototype.update = function() {
   // move and slow down
   this.rect.x += this.velocity.x;
   this.rect.y += this.velocity.y;
-  this.velocity.x *= 0.9;
-  this.velocity.y *= 0.9;
+  this.velocity.x *= 0.95;
+  this.velocity.y *= 0.95;
 
   if (this.energy > 0) {
-    this.energy -= Math.pow(this.size, 2) / 1000000;
+    var energyLoss = Math.pow(this.size, 1.1);
+    this.energy -= Math.pow(this.size, 1.1);
     this.pulseAngle += this.energy / (this.size * energyToSizeRatio) * 8;
   }
   this.syncProps();
@@ -145,13 +159,13 @@ Cell.prototype.update = function() {
         break;
       case "swim":
         actionTaken = true;
-        this.energy -= Math.pow(this.size, 2) / 1000000;
+        this.energy -= Math.pow(this.size, 1.1);
         this.velocity.x += Math.cos((this.register[Math.abs(currentCommand[1]) % registerSize] % 360) * Math.PI / 180) * this.size / 50;
         this.velocity.y += Math.sin((this.register[Math.abs(currentCommand[1]) % registerSize] % 360) * Math.PI / 180) * this.size / 50;
         break;
       case "split":
         if (this.size > minimumCellSplitSize) {
-          this.energy -= Math.pow(this.size, 2) / 10000;
+          this.energy -= Math.pow(this.size, 2);
           actionTaken = true;
           splitCell(this);
         }
@@ -159,13 +173,15 @@ Cell.prototype.update = function() {
       case "grow":
         if (this.size < maxCellSize) {
           actionTaken = true;
-          this.energy -= energyToSizeRatio;
-          this.size ++;
+          if (this.energy > energyToSizeRatio) {
+            this.energy -= energyToSizeRatio;
+            this.size ++;
+          }
         }
         else {
           // copy of split logic
           if (this.size > minimumCellSplitSize) {
-            this.energy -= Math.pow(this.size, 2) / 10000;
+            this.energy -= Math.pow(this.size, 2);
             actionTaken = true;
             splitCell(this);
           }
@@ -238,6 +254,10 @@ Cell.prototype.mutateProgram = function() {
 };
 
 Cell.prototype.deserialize = function(data) {
+  if (typeof data === "string") {
+    data = JSON.parse(data);
+  }
+
   this.size = data.size;
   this.energy = data.energy;
   this.velocity.x = data.velocity.x;
@@ -249,6 +269,8 @@ Cell.prototype.deserialize = function(data) {
   this.cursor = data.cursor;
   this.program = data.program;
   this.registers = data.registers;
+
+  this.updateColor();
 };
 
 Cell.prototype.serialize = function() {

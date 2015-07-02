@@ -22,8 +22,8 @@ _http.createServer(function(req, res) {
     let rawBody = "";
     req.on("data", function (data) {
       rawBody += data;
-      // kill request if size exceeds 1MB
-      if (rawBody.length > 1e6) {
+      // kill request if size exceeds 10MB
+      if (rawBody.length > 10e6) {
         req.connection.destroy();
       }
     });

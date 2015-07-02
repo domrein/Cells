@@ -9,7 +9,7 @@ var runCollision = function() {
     var cell = cells[i];
     tree.addChild(cell);
   }
-  
+
   for (i = 0; i < leafs.length; i ++) {
     leafs[i].collideChildren();
   }

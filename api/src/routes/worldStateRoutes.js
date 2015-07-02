@@ -5,7 +5,7 @@ exports.routes = [
     method: "GET",
     url: "/v1/worlds/:worldId/state",
     paramMap: {
-      worldId: "int(1)",
+      worldId: "string",
     },
     handler: require("../controllers/worldState.js").get,
   },
@@ -14,7 +14,7 @@ exports.routes = [
     method: "PUT",
     url: "/v1/worlds/:worldId/state",
     paramMap: {
-      worldId: "int(1)",
+      worldId: "string",
       state: "json",
       token: "string",
     },

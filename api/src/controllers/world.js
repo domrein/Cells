@@ -10,8 +10,8 @@ module.exports = {
     let token = "";
     _async.series([
       function(series) {
-        _redis.incr(`worlds:counter`, function(err, reply) {
-          worldId = reply;
+        _redis.incr(`worldCounter`, function(err, reply) {
+          worldId = parseInt(reply).toString(36);
           series(err);
         });
       },
@@ -21,6 +21,11 @@ module.exports = {
           token += chars[Math.floor(Math.random() * chars.length)];
         }
         series(null);
+      },
+      function(series) {
+        _redis.hset(`worlds:${worldId}`, "token", token, function(err, reply) {
+          series(err);
+        });
       },
     ], function(err) {
       callback(err, {id: worldId, token: token});

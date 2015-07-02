@@ -63,25 +63,43 @@ var world = {width: 25000, height: 25000};
 if (this.importScripts) {
   importScripts("Cell.js", "Crud.js", "collision.js");
 
+  onmessage = function(event) {
+    switch (event.data.command) {
+      case "loadState":
+        deserialize(event.data.state);
+        break;
+      case "saveState":
+        postMessage({command: "stateSaved", state: serialize()});
+        break;
+    }
+  };
+
   var programOpLimit = 32;
   var registerSize = 256;
   var cyclesPerSecond = 60;
-  var crudSpawnRate = 0.0001;
+  var crudSpawnRate = 0.0005;
   // var crudSpawnRate = 0;
-  // var cellSpawnRate = 0.00001;
-  var cellSpawnRate = 0.0001;
+  var cellSpawnRate = 0.00001;
+  // var cellSpawnRate = 0.0001;
   // var cellSpawnRate = 0;
   var programMutationRate = 0.01;
+  // TODO: get rid of max cell size (this should be limited by the rules of the world)
   var maxCellSize = 200;
-  var minimumCellSplitSize = 20;
-  var crudEnergy = 500;
-  var energyToSizeRatio = 50;
+  var minimumCellSplitSize = 50;
+  var crudEnergy = 10000;
+  var energyToSizeRatio = 10000;
   var energyConsumptionEfficiency = 0.7; // amount of energy preserved when a cell is consumed
 
   var crudSpawnCount = 0;
   var cellSpawnCount = 0;
 
   setInterval(function() {
+    // add any cells born last cycle
+    if (cellBirths.length) {
+      cells = cells.concat(cellBirths);
+      cellBirths = [];
+    }
+
     // spawn crud and cells
     crudSpawnCount += crudSpawnRate * world.width / 500 * world.height / 500;
     while (crudSpawnCount > 1) {
@@ -184,6 +202,8 @@ if (this.importScripts) {
   }
 
   var splitCell = function(parent) {
+    parent.alive = false;
+
     var childOne = cloneCell(parent);
     var childTwo = cloneCell(parent);
     childOne.size /= 2;
@@ -202,21 +222,22 @@ if (this.importScripts) {
     childOne.mutateProgram();
     childTwo.mutateProgram();
 
-    for (var i = cells.length - 1; i >= 0; i --) {
-      if (cells[i] === parent) {
-        cells.splice(i, 1);
-        break;
-      }
-    }
-    cells.push(childOne);
-    cells.push(childTwo);
+    // for (var i = cells.length - 1; i >= 0; i --) {
+    //   if (cells[i] === parent) {
+    //     cells.splice(i, 1);
+    //     break;
+    //   }
+    // }
+    cellBirths.push(childOne);
+    cellBirths.push(childTwo);
   };
 
   var cloneCell = function(cell) {
     var clone = new Cell();
     clone.rect.x = cell.rect.x;
     clone.rect.y = cell.rect.y;
-    clone.velocity = {x: cell.velocity.x, y: cell.velocity.y};
+    clone.velocity.x = cell.velocity.x;
+    clone.velocity.y = cell.velocity.y;
     clone.heading = cell.heading;
     clone.size = cell.size;
     clone.energy = cell.energy;
@@ -435,6 +456,10 @@ if (this.importScripts) {
   };
 
   var deserialize = function(state) {
+    if (typeof state === "string") {
+      state = JSON.parse(state);
+    }
+
     world.width = state.settings.width;
     world.height = state.settings.height;
     programOpLimit = state.settings.programOpLimit;
@@ -452,10 +477,14 @@ if (this.importScripts) {
     cellSpawnCount = state.settings.cellSpawnCount;
     cells = state.cells.map(function(cellData) {
       var cell = new Cell();
-      newCell.deserialize(cellData)
+      cell.deserialize(cellData)
       return cell;
     });
-    cruds = [];
+    cruds = state.cruds.map(function(crudData) {
+      var crud = new Crud();
+      crud.deserialize(crudData);
+      return crud;
+    });
   };
 
   var serialize = function() {
@@ -488,6 +517,7 @@ if (this.importScripts) {
 
   // sim init
   var cells = [];
+  var cellBirths = [];
   var cruds = [];
   var flatCruds = []; // resource for cell programs
   var flatCells = []; // resource for cell programs

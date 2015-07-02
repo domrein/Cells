@@ -117,6 +117,51 @@ var renderCrud = function(x, y) {
   context.fillRect(x - size / 2 - camera.x, y - size / 2 - camera.y, size, size);
 };
 
+function request(method, url, body, callback) {
+  if (callback === undefined) {
+    callback = body;
+    body = undefined;
+  }
+
+  var req = new XMLHttpRequest();
+  req.open(method, url, true);
+  req.onreadystatechange = function() {
+    if (req.readyState !== 4 || req.status !== 200) {
+      return;
+    }
+    // save off id and token for saving state
+    var response = JSON.parse(req.responseText);
+    callback(response);
+  };
+  req.send(body);
+}
+
+function saveState() {
+  setTimeout(function() {
+    simulation.postMessage({command: "saveState"});
+  }, 1000 * 60 * 0.5);
+}
+
+var id = localStorage.getItem("id");
+var token = localStorage.getItem("token");
+if (id && token) {
+  request("GET", "http://localhost:3000/v1/worlds/" + id + "/state", function(response) {
+    if (response.data.state) {
+      simulation.postMessage({command: "loadState", state: response.data.state});
+    }
+    saveState();
+  });
+}
+else {
+  request("POST", "http://localhost:3000/v1/worlds", function(response) {
+    id = response.data.id;
+    token = response.data.token;
+    localStorage.setItem("id", id);
+    localStorage.setItem("token", token);
+    saveState();
+  });
+}
+
 var simulation = new Worker("simulation.js");
 
 simulation.onmessage = function(event) {
@@ -127,29 +172,49 @@ simulation.onmessage = function(event) {
   // // render
   // cells = event.data.cells;
   // cruds = event.data.cruds;
-  var buffer = event.data;
-  var typeView = new Int32Array(buffer);
-  if (typeView[0] === 0) {
-    crudBuffer = buffer;
-    crudView = new Int32Array(crudBuffer, 4);
+  if (event.data instanceof ArrayBuffer) {
+    var buffer = event.data;
+    var typeView = new Int32Array(buffer);
+    if (typeView[0] === 0) {
+      crudBuffer = buffer;
+      crudView = new Int32Array(crudBuffer, 4);
+    }
+    else if (typeView[0] === 1) {
+      cellBuffer = buffer;
+      cellView = new Int32Array(cellBuffer, 4);
+    }
+    // else if (typeView[0] === 1) {
+    //   cellBuffer = buffer;
+    //   cellLocationView = new Uint32Array(cellBuffer);
+    //
+    //   var buffer = new ArrayBuffer(24);
+    //
+    //   // ... read the data into the buffer ...
+    //
+    //   var idView = new Uint32Array(buffer, 0, 1);
+    //   var usernameView = new Uint8Array(buffer, 4, 16);
+    //   var amountDueView = new Float32Array(buffer, 20, 1);
+    // }
+    renderScene = true;
   }
-  else if (typeView[0] === 1) {
-    cellBuffer = buffer;
-    cellView = new Int32Array(cellBuffer, 4);
+  else {
+    switch (event.data.command) {
+      case "stateSaved":
+        // send off saved state to server
+        var req = new XMLHttpRequest();
+        req.open("PUT", "http://localhost:3000/v1/worlds/" + id + "/state", true);
+        req.onreadystatechange = function() {
+          if (req.readyState !== 4 || req.status !== 200) {
+            // TODO: find out why the save failed
+            return;
+          }
+          // save off id and token for saving state
+          var response = JSON.parse(req.responseText);
+        };
+        req.send(JSON.stringify({state: event.data.state, token: token}));
+        break;
+    }
   }
-  // else if (typeView[0] === 1) {
-  //   cellBuffer = buffer;
-  //   cellLocationView = new Uint32Array(cellBuffer);
-  //
-  //   var buffer = new ArrayBuffer(24);
-  //
-  //   // ... read the data into the buffer ...
-  //
-  //   var idView = new Uint32Array(buffer, 0, 1);
-  //   var usernameView = new Uint8Array(buffer, 4, 16);
-  //   var amountDueView = new Float32Array(buffer, 20, 1);
-  // }
-  renderScene = true;
   // console.log("MESSAGE");
 };
 
