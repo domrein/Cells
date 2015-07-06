@@ -210,6 +210,7 @@ simulation.onmessage = function(event) {
           }
           // save off id and token for saving state
           var response = JSON.parse(req.responseText);
+          saveState();
         };
         req.send(JSON.stringify({state: event.data.state, token: token}));
         break;
