@@ -302,10 +302,17 @@ if (this.importScripts) {
         ["set", 1, 90],
         ["set", 2, 180],
         ["set", 3, 270],
-        ["set", 4, 100], // split target
-        ["set", 5, 5000], // grow target
+        ["set", 4, 125], // split energy threshold
 
         ["label", 4], // beginning of main loop
+
+        // grow energy threshold
+        ["copy", 1, 5, 18], // size
+        ["set", 19, energyToSizeRatio], // size
+        ["*", 18, 19, 20],
+        ["set", 21, 2],
+        ["/", 20, 21, 22],
+        ["copy", 0, 22, 5], // set threshold to half
 
         // copy crud x,y at 0
         ["copy", 3, 0, 10], // copy crud's x into register 10
@@ -549,6 +556,8 @@ if (this.importScripts) {
 
   // cells.push(createCell("vegetable"));
   // cells.push(createCell("seeker"));
+  // cells[cells.length - 1].rect.x = 0;
+  // cells[cells.length - 1].rect.y = 0;
   var i;
   for (i = 0; i < 100; i ++) {
     cells.push(createCell("random"));
