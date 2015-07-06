@@ -29,7 +29,7 @@ module.exports = {
         });
       },
       function(series) {
-        _redis.hset(`worlds:${parseInt(worldId, 36)}`, "state", state, function(err, reply) {
+        _redis.hset(`worlds:${worldId}`, "state", state, function(err, reply) {
           series(err, reply);
         });
       }
