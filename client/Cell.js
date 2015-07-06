@@ -60,9 +60,8 @@ Cell.prototype.update = function() {
   this.velocity.y *= 0.95;
 
   if (this.energy > 0) {
-    var energyLoss = Math.pow(this.size, 1.1);
-    this.energy -= Math.pow(this.size, 1.1);
-    this.pulseAngle += this.energy / (this.size * energyToSizeRatio) * 8;
+    this.energy -= Math.pow(this.size, 1.1) / 10;
+    this.pulseAngle += this.energy / (this.size * energyToSizeRatio);
   }
   this.syncProps();
 
@@ -159,7 +158,7 @@ Cell.prototype.update = function() {
         break;
       case "swim":
         actionTaken = true;
-        this.energy -= Math.pow(this.size, 1.1);
+        this.energy -= Math.pow(this.size, 1.5) / 10;
         this.velocity.x += Math.cos((this.register[Math.abs(currentCommand[1]) % registerSize] % 360) * Math.PI / 180) * this.size / 50;
         this.velocity.y += Math.sin((this.register[Math.abs(currentCommand[1]) % registerSize] % 360) * Math.PI / 180) * this.size / 50;
         break;
@@ -172,8 +171,9 @@ Cell.prototype.update = function() {
         break;
       case "grow":
         if (this.size < maxCellSize) {
-          actionTaken = true;
+          // TODO: make growing more expensive as size increases
           if (this.energy > energyToSizeRatio) {
+            actionTaken = true;
             this.energy -= energyToSizeRatio;
             this.size ++;
           }
