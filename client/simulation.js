@@ -93,7 +93,14 @@ if (this.importScripts) {
   var crudSpawnCount = 0;
   var cellSpawnCount = 0;
 
-  setInterval(function() {
+  var throttle = true;
+
+  // TODO: change update speed to variable
+  // TODO: add option to throttle back on crud if simulation isn't meeting update speed target
+  var updateLagCounter = 0;
+  setInterval(function update() {
+    var updateStartTime = new Date().getTime();
+
     // add any cells born last cycle
     if (cellBirths.length) {
       cells = cells.concat(cellBirths);
@@ -169,6 +176,24 @@ if (this.importScripts) {
       cellView[index * numCellProps + 5 + 1] = Math.round(cell.pulseAngle);
     });
     postMessage(cellBuffer, [cellBuffer]);
+
+    // if simulation is lagging, start pulling out crud
+    var updateDuration = new Date().getTime() - updateStartTime;
+    if (throttle) {
+      if (updateDuration > 15) {
+        updateLagCounter ++;
+      }
+      else {
+        updateLagCounter = 0;
+        // updateLagCounter --;
+        // if (updateLagCounter < 0) {
+        //   updateLagCounter = 0;
+        // }
+      }
+      for (i = 1; i * 20 < updateLagCounter; i ++) {
+        cruds.shift();
+      }
+    }
   }, 1000 / cyclesPerSecond);
 
   // limit not included
