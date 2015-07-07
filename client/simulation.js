@@ -275,6 +275,7 @@ if (this.importScripts) {
       clone.program.push(cloneCommand);
     });
     clone.updateColor();
+    clone.optimizeProgram();
 
     return clone;
   };
@@ -360,6 +361,7 @@ if (this.importScripts) {
       ];
     }
     cell.updateColor();
+    cell.optimizeProgram();
 
     return cell;
   };

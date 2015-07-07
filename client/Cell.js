@@ -15,6 +15,7 @@ var Cell = function() {
     this.register.push(0);
   }
   this.program = [];
+  this.optimizedProgram = [];
   this.cursor = 0; // the current location in the program
   this.pulseAngle = 0;
   this.type = "cell";
@@ -45,6 +46,70 @@ Object.defineProperty(Cell.prototype, "energy", {
   },
 });
 
+Cell.prototype.optimizeProgram = function() {
+  this.optimizedProgram = [];
+  for (var i = 0; i < this.program.length; i ++) {
+    var command = this.program[i];
+    var optimizedCommand = [];
+    optimizedCommand.push(command[0]);
+    switch (command[0]) {
+      case "breakPoint": break;
+      case "jump":
+        var labelLocation = -1;
+        for (var j = 0; j < this.program.length; j ++) {
+          if (this.program[j][0] === "label" && this.program[j][1] === command[1]) {
+            labelLocation = j;
+            break;
+          }
+        }
+        optimizedCommand.push(labelLocation);
+        break;
+      case "jumpIf":
+        optimizedCommand.push(Math.abs(command[1]) % registerSize);
+        labelLocation = -1;
+        for (j = 0; j < this.program.length; j ++) {
+          if (this.program[j][0] === "label" && this.program[j][1] === command[2]) {
+            labelLocation = j;
+            break;
+          }
+        }
+        optimizedCommand.push(labelLocation);
+        break;
+      case "label": break; // TODO: can we optimize these out? (just jump to the correct location instead of having these)
+      case "set":
+        optimizedCommand.push(Math.abs(command[1]) % registerSize);
+        optimizedCommand.push(command[2]);
+        break;
+      case "copy":
+        // NOTE: we have to look up the resource in the program because flatCruds/Cells are recreated every frame
+        optimizedCommand.push(Math.abs(command[1]) % 4);
+        optimizedCommand.push(Math.abs(command[2]));
+        optimizedCommand.push(Math.abs(command[3]) % registerSize);
+        break;
+      case "+":
+      case "-":
+      case "*":
+      case "/":
+      case "%":
+      case "==":
+      case "!=":
+      case ">":
+        optimizedCommand.push(Math.abs(command[1]) % registerSize);
+        optimizedCommand.push(Math.abs(command[2]) % registerSize);
+        optimizedCommand.push(Math.abs(command[3]) % registerSize);
+        break;
+      case "noop": break;
+      case "swim":
+        optimizedCommand.push(Math.abs(command[1]) % registerSize);
+        break;
+      case "split": break;
+      case "grow": break;
+    }
+    this.optimizedProgram.push(optimizedCommand);
+  }
+};
+
+// TODO: add in unit tests for the language so we know every command is acting as expected (this is especially important because of optimization)
 Cell.prototype.update = function() {
   // TODO: figure out a better way to make sure size and width/height are the same
   if (this.rect.width != this.size) {
@@ -68,10 +133,10 @@ Cell.prototype.update = function() {
   // run over program until an action occurs or we hit max operations
   var actionTaken = false;
   for (var i = 0; i < programOpLimit && !actionTaken && this.energy > 0; i ++) {
-    if (!this.program.length) {
+    if (!this.optimizedProgram.length) {
       break;
     }
-    var currentCommand = this.program[this.cursor];
+    var currentCommand = this.optimizedProgram[this.cursor];
     // console.log(currentCommand);
     this.cursor ++;
     switch (currentCommand[0]) {
@@ -79,79 +144,71 @@ Cell.prototype.update = function() {
         var foo = 1;
         break;
       case "jump":
-        for (var j = 0; j < this.program.length; j ++) {
-          if (this.program[j][0] === "label" && this.program[j][1] === currentCommand[1]) {
-            this.cursor = j;
-            break;
-          }
+        if (currentCommand[1] !== -1) {
+          this.cursor = currentCommand[1];
         }
         break;
       case "jumpIf":
-        if (this.register[Math.abs(currentCommand[1]) % registerSize]) {
-          for (j = 0; j < this.program.length; j ++) {
-            if (this.program[j][0] === "label" && this.program[j][1] === currentCommand[2]) {
-              this.cursor = j;
-              break;
-            }
-          }
+        if (currentCommand[2] !== -1 && this.register[currentCommand[1]]) {
+          this.cursor = currentCommand[2];
         }
         break;
       case "label":
         break;
       case "set":
-        this.register[Math.abs(currentCommand[1]) % registerSize] = currentCommand[2];
+        this.register[currentCommand[1]] = currentCommand[2];
         break;
       case "copy":
         var resource = null;
-        switch (Math.abs(currentCommand[1]) % 4) {
+        switch (currentCommand[1]) {
           case 0: resource = this.register; break;
           case 1: resource = this.props; break;
           case 2: resource = flatCells; break;
           case 3: resource = flatCruds; break;
         }
-        this.register[Math.abs(currentCommand[3]) % registerSize] = Math.round(resource[Math.abs(currentCommand[2]) % resource.length]) || 0;
+        this.register[currentCommand[3]] = Math.round(resource[currentCommand[2] % resource.length]) || 0;
         break;
       case "+":
-        this.register[Math.abs(currentCommand[3]) % registerSize] = this.register[Math.abs(currentCommand[1]) % registerSize] + this.register[Math.abs(currentCommand[2]) % registerSize];
+        this.register[currentCommand[3]] = this.register[currentCommand[1]] + this.register[currentCommand[2]];
         break;
       case "-":
-        this.register[Math.abs(currentCommand[3]) % registerSize] = this.register[Math.abs(currentCommand[1]) % registerSize] - this.register[Math.abs(currentCommand[2]) % registerSize];
+        this.register[currentCommand[3]] = this.register[currentCommand[1]] - this.register[currentCommand[2]];
         break;
       case "*":
-        this.register[Math.abs(currentCommand[3]) % registerSize] = this.register[Math.abs(currentCommand[1]) % registerSize] * this.register[Math.abs(currentCommand[2]) % registerSize];
+        this.register[currentCommand[3]] = this.register[currentCommand[1]] * this.register[currentCommand[2]];
         break;
       case "/":
-        if (this.register[Math.abs(currentCommand[2]) % registerSize] !== 0) {
-          this.register[Math.abs(currentCommand[3]) % registerSize] = Math.round(this.register[Math.abs(currentCommand[1]) % registerSize] / this.register[Math.abs(currentCommand[2]) % registerSize]);
+        if (this.register[currentCommand[2]] !== 0) {
+          this.register[currentCommand[3]] = Math.round(this.register[currentCommand[1]] / this.register[currentCommand[2]]);
         }
         break;
       case "%":
-        if (this.register[Math.abs(currentCommand[2]) % registerSize] !== 0) {
-          this.register[Math.abs(currentCommand[3]) % registerSize] = this.register[Math.abs(currentCommand[1]) % registerSize] % this.register[Math.abs(currentCommand[2]) % registerSize];
+        if (this.register[currentCommand[2]] !== 0) {
+          this.register[currentCommand[3]] = this.register[currentCommand[1]] % this.register[currentCommand[2]];
         }
         break;
       case "==":
-        if (this.register[Math.abs(currentCommand[1]) % registerSize] === this.register[Math.abs(currentCommand[2]) % registerSize]) {
-          this.register[Math.abs(currentCommand[3]) % registerSize] = 1;
+        if (this.register[currentCommand[1]] === this.register[currentCommand[2]]) {
+          this.register[currentCommand[3]] = 1;
         }
         else {
-          this.register[Math.abs(currentCommand[3]) % registerSize] = 0;
+          this.register[currentCommand[3]] = 0;
         }
         break;
       case "!=":
-        if (this.register[Math.abs(currentCommand[1]) % registerSize] !== this.register[Math.abs(currentCommand[2]) % registerSize]) {
-          this.register[Math.abs(currentCommand[3]) % registerSize] = 1;
+        if (this.register[currentCommand[1]] !== this.register[currentCommand[2]]) {
+          this.register[currentCommand[3]] = 1;
         }
         else {
-          this.register[Math.abs(currentCommand[3]) % registerSize] = 0;
+          this.register[currentCommand[3]] = 0;
         }
         break;
       case ">":
-        if (this.register[Math.abs(currentCommand[1]) % registerSize] > this.register[Math.abs(currentCommand[2]) % registerSize]) {
-          this.register[Math.abs(currentCommand[3]) % registerSize] = 1;
+        if (this.register[currentCommand[1]] > this.register[currentCommand[2]]) {
+          this.register[currentCommand[3]] = 1;
         }
         else {
-          this.register[Math.abs(currentCommand[3]) % registerSize] = 0;
+          this.register[currentCommand[3]] = 0;
         }
         break;
       case "noop":
@@ -159,8 +216,8 @@ Cell.prototype.update = function() {
       case "swim":
         actionTaken = true;
         this.energy -= Math.pow(this.size, 1.5) / 10;
-        this.velocity.x += Math.cos((this.register[Math.abs(currentCommand[1]) % registerSize] % 360) * Math.PI / 180) * this.size / 50;
-        this.velocity.y += Math.sin((this.register[Math.abs(currentCommand[1]) % registerSize] % 360) * Math.PI / 180) * this.size / 50;
+        this.velocity.x += Math.cos((this.register[currentCommand[1]] % 360) * Math.PI / 180) * this.size / 50;
+        this.velocity.y += Math.sin((this.register[currentCommand[1]] % 360) * Math.PI / 180) * this.size / 50;
         break;
       case "split":
         if (this.size > minimumCellSplitSize) {
@@ -249,6 +306,7 @@ Cell.prototype.mutateProgram = function() {
       }
     }
   }
+  this.optimizeProgram();
 
   this.updateColor();
 };
