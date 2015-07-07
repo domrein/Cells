@@ -77,8 +77,8 @@ Cell.prototype.optimizeProgram = function() {
         break;
       case "label": break; // TODO: can we optimize these out? (just jump to the correct location instead of having these)
       case "set":
-        optimizedCommand.push(Math.abs(command[1]) % registerSize);
-        optimizedCommand.push(command[2]);
+        optimizedCommand.push(command[1]);
+        optimizedCommand.push(Math.abs(command[2]) % registerSize);
         break;
       case "copy":
         // NOTE: we have to look up the resource in the program because flatCruds/Cells are recreated every frame
@@ -156,7 +156,7 @@ Cell.prototype.update = function() {
       case "label":
         break;
       case "set":
-        this.register[currentCommand[1]] = currentCommand[2];
+        this.register[currentCommand[2]] = currentCommand[1];
         break;
       case "copy":
         var resource = null;

@@ -300,18 +300,18 @@ if (this.importScripts) {
         // init code
         ["label", 6],
         ["set", 0, 0],
-        ["set", 1, 90],
-        ["set", 2, 180],
-        ["set", 3, 270],
-        ["set", 4, 125], // split energy threshold
+        ["set", 90, 1],
+        ["set", 180, 2],
+        ["set", 270, 3],
+        ["set", 125, 4], // split energy threshold
 
         ["label", 4], // beginning of main loop
 
         // grow energy threshold
         ["copy", 1, 5, 18], // size
-        ["set", 19, energyToSizeRatio], // size
+        ["set", energyToSizeRatio, 19], // size
         ["*", 18, 19, 20],
-        ["set", 21, 2],
+        ["set", 2, 21],
         ["/", 20, 21, 22],
         ["copy", 0, 22, 5], // set threshold to half
 
