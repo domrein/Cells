@@ -19,8 +19,8 @@ var runCollision = function() {
   for (i = 0; i < leafs.length; i ++) {
     leafs[i].collideChildren();
   }
+};
 
-}
 var leafs = [];
 var splitSize = 1000;
 
