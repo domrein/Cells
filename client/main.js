@@ -38,8 +38,8 @@ var cellBuffer = new ArrayBuffer();
 var cellView = new Int32Array();
 var renderScene = false;
 
-var worldWidth = 25000;
-var worldHeight = 25000;
+var worldWidth = 250000;
+var worldHeight = 250000;
 setInterval(function() {
   stats.begin();
 
@@ -78,8 +78,8 @@ setInterval(function() {
   }
   if (controls.zoomOut) {
     camera.zoom += camera.zoomSpeed;
-    if (camera.zoom > 100) {
-      camera.zoom = 100;
+    if (camera.zoom > 1000) {
+      camera.zoom = 1000;
     }
   }
   if (controls.up || controls.down || controls.left || controls.right || controls.zoomIn || controls.zoomOut) {
@@ -113,7 +113,7 @@ setInterval(function() {
 var renderCrud = function(x, y) {
   x /= camera.zoom;
   y /= camera.zoom;
-  var size = 20 / camera.zoom;
+  var size = 200 / camera.zoom;
 
   context.fillStyle = "#BBBBBB";
   context.fillRect(x - size / 2 - camera.x, y - size / 2 - camera.y, size, size);
@@ -146,6 +146,11 @@ function saveState() {
 
 var id = localStorage.getItem("id");
 var token = localStorage.getItem("token");
+
+// TEMP: ignore saved state
+id = null;
+token = null;
+
 if (id && token) {
   request("GET", "http://localhost:3000/v1/worlds/" + id + "/state", function(response) {
     if (response.data.state) {
@@ -298,4 +303,4 @@ var resize = function() {
 window.onresize = resize;
 resize();
 
-var camera = {x: 0, y: 0, zoom: 10, scrollSpeed: 5, zoomSpeed: 0.1};
+var camera = {x: 0, y: 0, zoom: 100, scrollSpeed: 5, zoomSpeed: 1};

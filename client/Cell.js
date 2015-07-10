@@ -232,34 +232,15 @@ Cell.prototype.update = function() {
         break;
       case "swim":
         actionTaken = true;
-        this.energy -= Math.pow(this.size, 1.5) / 10;
+        this.energy -= Math.pow(this.size, 1.5) / 25;
         this.velocity.x += Math.cos((this.register[currentCommand[1]] % 360) * Math.PI / 180) * this.size / 50;
         this.velocity.y += Math.sin((this.register[currentCommand[1]] % 360) * Math.PI / 180) * this.size / 50;
         break;
       case "split":
-        if (this.size > minimumCellSplitSize) {
-          this.energy -= Math.pow(this.size, 2);
-          actionTaken = true;
-          splitCell(this);
-        }
+        actionTaken = this.split();
         break;
       case "grow":
-        if (this.size < maxCellSize) {
-          // TODO: make growing more expensive as size increases
-          if (this.energy > energyToSizeRatio) {
-            actionTaken = true;
-            this.energy -= energyToSizeRatio;
-            this.size ++;
-          }
-        }
-        else {
-          // copy of split logic
-          if (this.size > minimumCellSplitSize) {
-            this.energy -= Math.pow(this.size, 2);
-            actionTaken = true;
-            splitCell(this);
-          }
-        }
+        actionTaken = this.grow();
         break;
     }
     if (this.cursor >= this.program.length) {
@@ -271,6 +252,33 @@ Cell.prototype.update = function() {
     this.alive = false;
   }
   this.updateHeading();
+};
+
+Cell.prototype.grow = function() {
+  if (this.size < maxCellSize) {
+    // TODO: make growing more expensive as size increases
+    if (this.energy > energyToSizeRatio) {
+      this.energy -= energyToSizeRatio;
+      this.size ++;
+      return true;
+    }
+  }
+  else {
+    return this.split();
+  }
+
+  return false;
+};
+
+Cell.prototype.split = function() {
+  // copy of split logic
+  if (this.size > minimumCellSplitSize) {
+    this.energy -= Math.pow(this.size, 2) / 10;
+    splitCell(this);
+    return true;
+  }
+
+  return false;
 };
 
 Cell.prototype.updateHeading = function() {

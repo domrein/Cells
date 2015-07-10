@@ -66,7 +66,7 @@ grow
 
 "use strict";
 
-var world = {width: 25000, height: 25000};
+var world = {width: 250000, height: 250000};
 
 if (this.importScripts) {
   importScripts("Cell.js", "Crud.js", "collision.js");
@@ -83,20 +83,22 @@ if (this.importScripts) {
   };
 
   var programOpLimit = 32;
-  var registerSize = 256;
+  var registerSize = 128;
   var cyclesPerSecond = 60;
-  var crudSpawnRate = 0.0005;
+  var crudSpawnRate = 0.000005;
   // var crudSpawnRate = 0;
-  var cellSpawnRate = 0.00001;
+  var cellSpawnRate = 0.00000001;
   // var cellSpawnRate = 0.0001;
-  // var cellSpawnRate = 0;
+  var cellSpawnRate = 0;
   var programMutationRate = 0.01;
   // TODO: get rid of max cell size (this should be limited by the rules of the world)
-  var maxCellSize = 200;
-  var minimumCellSplitSize = 50;
-  var crudEnergy = 10000;
-  var energyToSizeRatio = 10000;
+  var maxCellSize = 2000;
+  var minimumCellSplitSize = 500;
+  var crudEnergy = 100000;
+  var energyToSizeRatio = 1000;
   var energyConsumptionEfficiency = 0.7; // amount of energy preserved when a cell is consumed
+  var screenWrapX = true;
+  var screenWrapY = true;
 
   var crudSpawnCount = 0;
   var cellSpawnCount = 0;
@@ -116,31 +118,54 @@ if (this.importScripts) {
     }
 
     // spawn crud and cells
-    crudSpawnCount += crudSpawnRate * world.width / 500 * world.height / 500;
-    while (crudSpawnCount > 1) {
-      createCrud();
-      crudSpawnCount --;
-    }
-    cellSpawnCount += cellSpawnRate * world.width / 500 * world.height / 500;
-    while (cellSpawnCount > 1) {
-      cells.push(createCell("random"));
-      cellSpawnCount --;
+    // only spawn new cells if we aren't lagging
+    if (updateLagCounter === 0) {
+      crudSpawnCount += crudSpawnRate * world.width / 500 * world.height / 500;
+      while (crudSpawnCount > 1) {
+        createCrud();
+        crudSpawnCount --;
+      }
+      cellSpawnCount += cellSpawnRate * world.width / 500 * world.height / 500;
+      while (cellSpawnCount > 1) {
+        cells.push(createCell("random"));
+        cellSpawnCount --;
+      }
     }
 
     // block cells from leaving world
     cells.forEach(function(cell) {
       cell.update();
       if (cell.rect.x < 0) {
-        cell.rect.x = 0;
+        if (screenWrapX) {
+          cell.rect.x += world.width;
+        }
+        else {
+          cell.rect.x = 0;
+        }
       }
       else if (cell.rect.x > world.width) {
-        cell.rect.x = world.width;
+        if (screenWrapX) {
+          cell.rect.x %= world.width;
+        }
+        else {
+          cell.rect.x = world.width;
+        }
       }
       if (cell.rect.y < 0) {
-        cell.rect.y = 0;
+        if (screenWrapY) {
+          cell.rect.y += world.height;
+        }
+        else {
+          cell.rect.y = 0;
+        }
       }
       else if (cell.rect.y > world.height) {
-        cell.rect.y = world.height;
+        if (screenWrapY) {
+          cell.rect.y %= world.height;
+        }
+        else {
+          cell.rect.y = world.height;
+        }
       }
     });
 
@@ -198,8 +223,15 @@ if (this.importScripts) {
         //   updateLagCounter = 0;
         // }
       }
-      for (i = 1; i * 20 < updateLagCounter; i ++) {
+      for (i = 1; i * 50 < updateLagCounter; i ++) {
         cruds.shift();
+      }
+      // Drop op limit to help with processing time
+      if (updateLagCounter > 1000) {
+        programOpLimit = 4;
+      }
+      else {
+        programOpLimit = 32;
       }
     }
   }, 1000 / cyclesPerSecond);
@@ -232,7 +264,7 @@ if (this.importScripts) {
     var crud = new Crud();
     cruds.push(crud);
     tree.addChild(crud);
-  }
+  };
 
   var splitCell = function(parent) {
     parent.alive = false;
@@ -290,12 +322,19 @@ if (this.importScripts) {
 
   var createCell = function(type) {
     var cell =  new Cell();
+    // set the whole program to "set" commands. Then mutate it.
     if (type === "random") {
       var programLength = rand(512);
       // var programLength = 8;
       for (var i = 0; i < programLength; i ++) {
-        cell.program.push(generateRandomCommand());
+        if (Math.random() > 0.5) {
+          cell.program.push(generateRandomCommand(3));
+        }
+        else {
+          cell.program.push(generateRandomCommand(18));
+        }
       }
+      cell.mutateProgram();
     }
     else if (type === "vegetable") {
       cell.program = [
@@ -374,8 +413,11 @@ if (this.importScripts) {
     return cell;
   };
 
-  var generateRandomCommand = function() {
-    switch (rand(21)) {
+  var generateRandomCommand = function(command) {
+    if (command === undefined) {
+      command = rand(21);
+    }
+    switch (command) {
       case 0:
         return ["jump", rand(16)];
       case 1:
@@ -383,7 +425,7 @@ if (this.importScripts) {
       case 2:
         return ["label", rand(8)];
       case 3:
-        return ["set", rand(registerSize), rand(32)];
+        return ["set", rand(512), rand(registerSize)];
       case 4:
         return ["copy", rand(4), rand(32), rand(registerSize)];
       case 5:
@@ -517,9 +559,11 @@ if (this.importScripts) {
     energyConsumptionEfficiency = state.settings.energyConsumptionEfficiency;
     crudSpawnCount = state.settings.crudSpawnCount;
     cellSpawnCount = state.settings.cellSpawnCount;
+    screenWrapX = state.settings.screenWrapX,
+    screenWrapY = state.settings.screenWrapY,
     cells = state.cells.map(function(cellData) {
       var cell = new Cell();
-      cell.deserialize(cellData)
+      cell.deserialize(cellData);
       return cell;
     });
     cruds = state.cruds.map(function(crudData) {
@@ -547,6 +591,8 @@ if (this.importScripts) {
         energyConsumptionEfficiency: energyConsumptionEfficiency,
         crudSpawnCount: crudSpawnCount,
         cellSpawnCount: cellSpawnCount,
+        screenWrapX: screenWrapX,
+        screenWrapY: screenWrapY,
       },
       cells: cells.map(function(cell) {
         return cell.serialize();
@@ -566,8 +612,8 @@ if (this.importScripts) {
 
   // cells.push(createCell("vegetable"));
   // cells.push(createCell("seeker"));
-  // cells[cells.length - 1].rect.x = 0;
-  // cells[cells.length - 1].rect.y = 0;
+  // cells[cells.length - 1].rect.x = 5000;
+  // cells[cells.length - 1].rect.y = 5000;
   var i;
   for (i = 0; i < 100; i ++) {
     cells.push(createCell("random"));
