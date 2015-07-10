@@ -140,8 +140,8 @@ Cell.prototype.update = function() {
   this.velocity.y *= 0.95;
 
   if (this.energy > 0) {
-    this.energy -= Math.pow(this.size, 1.1) / 10;
-    this.pulseAngle += this.energy / (this.size * energyToSizeRatio);
+    this.energy -= Math.pow(this.size, 1.1) / 50;
+    this.pulseAngle += this.energy / (this.size * energyToSizeRatio) * 15;
   }
   this.syncProps();
 
