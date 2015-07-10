@@ -55,8 +55,10 @@ Object.defineProperty(Cell.prototype, "energy", {
   // TODO: handle excess energy (spawn crud?)
   set: function(value) {
     this._energy = value;
-    if (this._energy > this.size * energyToSizeRatio) {
-      this._energy = this.size * energyToSizeRatio;
+    // force cell to grow if it's over max energy
+    while (this._energy > this.size * energyToSizeRatio) {
+      this.grow();
+      // this._energy = this.size * energyToSizeRatio;
     }
   },
 });
