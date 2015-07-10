@@ -1,3 +1,11 @@
+/* global importScripts */
+/* global tree */
+/* global onmessage */
+/* global postMessage */
+/* global runCollision */
+/* global Cell */
+/* global Crud */
+
 /*
 Rules:
 can only perform one action per cycle

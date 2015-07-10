@@ -1,3 +1,5 @@
+/* global stats */
+
 "use strict";
 
 var renderCell = function(x, y, size, color, rotation, pulseAngle) {

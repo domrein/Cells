@@ -1,3 +1,6 @@
+/* global Rectangle */
+/* global world */
+
 "use strict";
 
 var Crud = function() {

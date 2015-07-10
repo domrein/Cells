@@ -1,3 +1,9 @@
+/* global cells */
+/* global crudEnergy */
+/* global world */
+/* global energyToSizeRatio */
+/* global energyConsumptionEfficiency */
+
 "use strict";
 
 // var childCount = 0;

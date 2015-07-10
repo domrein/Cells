@@ -1,7 +1,22 @@
+/* global Crud */
+/* global Rectangle */
+/* global energyToSizeRatio */
+/* global world */
+/* global registerSize */
+/* global programOpLimit */
+/* global flatCells */
+/* global flatCruds */
+/* global minimumCellSplitSize */
+/* global splitCell */
+/* global maxCellSize */
+/* global programMutationRate */
+/* global generateRandomCommand */
+/* global mutateCommand */
+
 "use strict";
 
 var Cell = function() {
-  this.size = 100;
+  this.size = 1000;
   this._energy = this.size * energyToSizeRatio;
   this.rect = new Rectangle(Math.random() * world.width, Math.random() * world.height, this.size, this.size);
   this.velocity = {x: 0, y: 0};
