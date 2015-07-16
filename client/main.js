@@ -38,8 +38,8 @@ var cellBuffer = new ArrayBuffer();
 var cellView = new Int32Array();
 var renderScene = false;
 
-var worldWidth = 250000;
-var worldHeight = 250000;
+var worldWidth = 200000;
+var worldHeight = 200000;
 setInterval(function() {
   stats.begin();
 
@@ -148,8 +148,8 @@ var id = localStorage.getItem("id");
 var token = localStorage.getItem("token");
 
 // TEMP: ignore saved state
-id = null;
-token = null;
+// id = null;
+// token = null;
 
 if (id && token) {
   request("GET", "http://localhost:3000/v1/worlds/" + id + "/state", function(response) {

@@ -66,7 +66,7 @@ grow
 
 "use strict";
 
-var world = {width: 250000, height: 250000};
+var world = {width: 200000, height: 200000};
 
 if (this.importScripts) {
   importScripts("Cell.js", "Crud.js", "collision.js");
@@ -104,9 +104,9 @@ if (this.importScripts) {
   var cellSpawnCount = 0;
 
   var throttle = true;
+  var throttleTolerance = 3000;
 
   // TODO: change update speed to variable
-  // TODO: add option to throttle back on crud if simulation isn't meeting update speed target
   var updateLagCounter = 0;
   setInterval(function update() {
     var updateStartTime = new Date().getTime();
@@ -223,11 +223,11 @@ if (this.importScripts) {
         //   updateLagCounter = 0;
         // }
       }
-      for (i = 1; i * 50 < updateLagCounter; i ++) {
+      for (i = 1; i * 50 + throttleTolerance < updateLagCounter; i ++) {
         cruds.shift();
       }
       // Drop op limit to help with processing time
-      if (updateLagCounter > 1000) {
+      if (updateLagCounter > throttleTolerance * 2) {
         programOpLimit = 4;
       }
       else {
@@ -287,12 +287,6 @@ if (this.importScripts) {
     childOne.mutateProgram();
     childTwo.mutateProgram();
 
-    // for (var i = cells.length - 1; i >= 0; i --) {
-    //   if (cells[i] === parent) {
-    //     cells.splice(i, 1);
-    //     break;
-    //   }
-    // }
     cellBirths.push(childOne);
     cellBirths.push(childTwo);
   };
@@ -325,15 +319,11 @@ if (this.importScripts) {
     // set the whole program to "set" commands. Then mutate it.
     if (type === "random") {
       var programLength = rand(512);
-      // var programLength = 8;
       for (var i = 0; i < programLength; i ++) {
-        if (Math.random() > 0.5) {
-          cell.program.push(generateRandomCommand(3));
-        }
-        else {
-          cell.program.push(generateRandomCommand(18));
-        }
+        cell.program.push(["set", rand(512), i % registerSize]);
       }
+      cell.mutateProgram();
+      cell.mutateProgram();
       cell.mutateProgram();
     }
     else if (type === "vegetable") {
@@ -455,7 +445,7 @@ if (this.importScripts) {
       case 17:
         return ["noop"];
       case 18:
-        return ["swim", rand(360)];
+        return ["swim", rand(registerSize)];
       case 19:
         return ["split"];
       case 20:
