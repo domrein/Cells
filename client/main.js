@@ -38,8 +38,8 @@ var cellBuffer = new ArrayBuffer();
 var cellView = new Int32Array();
 var renderScene = false;
 
-var worldWidth = 200000;
-var worldHeight = 200000;
+var worldWidth = 150000;
+var worldHeight = 150000;
 setInterval(function() {
   stats.begin();
 
