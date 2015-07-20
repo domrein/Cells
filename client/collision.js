@@ -22,7 +22,7 @@ var runCollision = function() {
 };
 
 var leafs = [];
-var splitSize = 1000;
+var splitSize = 10000;
 
 // let's make a quad tree, but it isn't rebuilt each frame?
 var Rectangle = function(x, y, width, height) {
