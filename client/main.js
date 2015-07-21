@@ -40,8 +40,22 @@ var renderScene = false;
 
 var worldWidth = 150000;
 var worldHeight = 150000;
+
+var cyclesPerSecond = 60;
+// render/controls loop
 setInterval(function() {
   stats.begin();
+
+  // call update on simulations
+  var updating = simulations.reduce(function(prev, curr) {
+    return prev.updating || curr.updating;
+  });
+  if (!updating) {
+    simulations.forEach(function(simulation) {
+      simulation.updating = true;
+      simulation.worker.postMessage({command: "update"});
+    });
+  }
 
   // move camera
   if (controls.up) {
@@ -60,7 +74,7 @@ setInterval(function() {
   if (controls.right) {
     camera.x += camera.scrollSpeed;
     // TODO: read world.width from simulation
-    if (camera.x + canvas.width > worldWidth / camera.zoom) {
+    if (camera.x + canvas.width > worldWidth * 4 / camera.zoom) {
       camera.x = worldWidth / camera.zoom - canvas.width;
     }
   }
@@ -89,28 +103,35 @@ setInterval(function() {
     context.fillStyle = "rgba(20, 20, 20, 0.8)";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    var numCruds = (crudBuffer.byteLength - 4) / 4 / 2;
-    for (var i = 0; i < numCruds; i ++) {
-      renderCrud(crudView[i * 2], crudView[i * 2 + 1]);
-    }
-    var numCellProps = 6;
-    var numCells = (cellBuffer.byteLength - 4) / 4 / numCellProps;
-    for (i = 0; i < numCells; i ++) {
-      renderCell(
-        cellView[i * numCellProps],
-        cellView[i * numCellProps + 1],
-        cellView[i * numCellProps + 2],
-        cellView[i * numCellProps + 3],
-        cellView[i * numCellProps + 4],
-        cellView[i * numCellProps + 5]
-      );
-    }
+    simulations.forEach(function(simulation, index) {
+      var numCruds = (simulation.crudBuffer.byteLength - 4) / 4 / 2;
+      for (var i = 0; i < numCruds; i ++) {
+        renderCrud(
+          simulation.crudView[i * 2] + worldWidth * index,
+          simulation.crudView[i * 2 + 1]
+        );
+      }
+      var numCellProps = 6;
+      var numCells = (simulation.cellBuffer.byteLength - 4) / 4 / numCellProps;
+      for (i = 0; i < numCells; i ++) {
+        renderCell(
+          // TEMP: just line up all simulations horizontally
+          simulation.cellView[i * numCellProps] + worldWidth * index,
+          simulation.cellView[i * numCellProps + 1],
+          simulation.cellView[i * numCellProps + 2],
+          simulation.cellView[i * numCellProps + 3],
+          simulation.cellView[i * numCellProps + 4],
+          simulation.cellView[i * numCellProps + 5]
+        );
+      }
+    });
     renderScene = false;
   }
   stats.end();
-}, 1000 / 60);
+}, 1000 / cyclesPerSecond);
 
 var renderCrud = function(x, y) {
+  // TODO: skip crud render if crud is offscreen
   x /= camera.zoom;
   y /= camera.zoom;
   var size = 200 / camera.zoom;
@@ -138,93 +159,119 @@ function request(method, url, body, callback) {
   req.send(body);
 }
 
-function saveState() {
-  setTimeout(function() {
-    simulation.postMessage({command: "saveState"});
-  }, 1000 * 60 * 0.5);
-}
-
-var id = localStorage.getItem("id");
-var token = localStorage.getItem("token");
-
-// TEMP: ignore saved state
+// function saveState() {
+//   setTimeout(function() {
+//     simulation.postMessage({command: "saveState"});
+//   }, 1000 * 60 * 0.5);
+// }
+//
+// var id = localStorage.getItem("id");
+// var token = localStorage.getItem("token");
+//
+// // TEMP: ignore saved state
 // id = null;
 // token = null;
+//
+// if (id && token) {
+//   request("GET", "http://localhost:3000/v1/worlds/" + id + "/state", function(response) {
+//     if (response.data.state) {
+//       simulation.postMessage({command: "loadState", state: response.data.state});
+//     }
+//     saveState();
+//   });
+// }
+// else {
+//   request("POST", "http://localhost:3000/v1/worlds", function(response) {
+//     id = response.data.id;
+//     token = response.data.token;
+//     localStorage.setItem("id", id);
+//     localStorage.setItem("token", token);
+//     saveState();
+//   });
+// }
 
-if (id && token) {
-  request("GET", "http://localhost:3000/v1/worlds/" + id + "/state", function(response) {
-    if (response.data.state) {
-      simulation.postMessage({command: "loadState", state: response.data.state});
+
+// spin up several simulations
+// TODO: add settings to control number of workers
+var simulations = [];
+for (var i = 0; i < 4; i ++) {
+  var simulation = new Worker("simulation.js");
+
+
+  simulation.onmessage = function(event) {
+    // console.log(event);
+    // console.log("after send:  " + Date.now());
+
+    var simData = null;
+    // TODO: find a better way of finding this without looping over all sims
+    for (i = 0; i < simulations.length; i ++) {
+      if (simulations[i].worker === event.target) {
+        simData = simulations[i];
+      }
     }
-    saveState();
+    // // render scene
+    // // render
+    // cells = event.data.cells;
+    // cruds = event.data.cruds;
+    if (event.data instanceof ArrayBuffer) {
+      var buffer = event.data;
+      var typeView = new Int32Array(buffer);
+      if (typeView[0] === 0) {
+        simData.crudBuffer = buffer;
+        simData.crudView = new Int32Array(simData.crudBuffer, 4);
+      }
+      else if (typeView[0] === 1) {
+        simData.cellBuffer = buffer;
+        simData.cellView = new Int32Array(simData.cellBuffer, 4);
+      }
+      // else if (typeView[0] === 1) {
+      //   cellBuffer = buffer;
+      //   cellLocationView = new Uint32Array(cellBuffer);
+      //
+      //   var buffer = new ArrayBuffer(24);
+      //
+      //   // ... read the data into the buffer ...
+      //
+      //   var idView = new Uint32Array(buffer, 0, 1);
+      //   var usernameView = new Uint8Array(buffer, 4, 16);
+      //   var amountDueView = new Float32Array(buffer, 20, 1);
+      // }
+      renderScene = true;
+    }
+    else {
+      switch (event.data.command) {
+        // case "stateSaved":
+        //   // send off saved state to server
+        //   var req = new XMLHttpRequest();
+        //   req.open("PUT", "http://localhost:3000/v1/worlds/" + id + "/state", true);
+        //   req.onreadystatechange = function() {
+        //     if (req.readyState !== 4 || req.status !== 200) {
+        //       // TODO: find out why the save failed
+        //       return;
+        //     }
+        //     // save off id and token for saving state
+        //     var response = JSON.parse(req.responseText);
+        //     saveState();
+        //   };
+        //   req.send(JSON.stringify({state: event.data.state, token: token}));
+        //   break;
+        case "updateCompleted":
+          simData.updating = false;
+          break;
+      }
+    }
+    // console.log("MESSAGE");
+  };
+
+  simulations.push({
+    worker: simulation,
+    updating: false,
+    crudBuffer: new ArrayBuffer(),
+    crudView: new Int32Array(),
+    cellBuffer: new ArrayBuffer(),
+    cellView: new Int32Array(),
   });
 }
-else {
-  request("POST", "http://localhost:3000/v1/worlds", function(response) {
-    id = response.data.id;
-    token = response.data.token;
-    localStorage.setItem("id", id);
-    localStorage.setItem("token", token);
-    saveState();
-  });
-}
-
-var simulation = new Worker("simulation.js");
-
-simulation.onmessage = function(event) {
-  // console.log(event);
-  // console.log("after send:  " + Date.now());
-
-  // // render scene
-  // // render
-  // cells = event.data.cells;
-  // cruds = event.data.cruds;
-  if (event.data instanceof ArrayBuffer) {
-    var buffer = event.data;
-    var typeView = new Int32Array(buffer);
-    if (typeView[0] === 0) {
-      crudBuffer = buffer;
-      crudView = new Int32Array(crudBuffer, 4);
-    }
-    else if (typeView[0] === 1) {
-      cellBuffer = buffer;
-      cellView = new Int32Array(cellBuffer, 4);
-    }
-    // else if (typeView[0] === 1) {
-    //   cellBuffer = buffer;
-    //   cellLocationView = new Uint32Array(cellBuffer);
-    //
-    //   var buffer = new ArrayBuffer(24);
-    //
-    //   // ... read the data into the buffer ...
-    //
-    //   var idView = new Uint32Array(buffer, 0, 1);
-    //   var usernameView = new Uint8Array(buffer, 4, 16);
-    //   var amountDueView = new Float32Array(buffer, 20, 1);
-    // }
-    renderScene = true;
-  }
-  else {
-    switch (event.data.command) {
-      case "stateSaved":
-        // send off saved state to server
-        var req = new XMLHttpRequest();
-        req.open("PUT", "http://localhost:3000/v1/worlds/" + id + "/state", true);
-        req.onreadystatechange = function() {
-          if (req.readyState !== 4 || req.status !== 200) {
-            // TODO: find out why the save failed
-            return;
-          }
-          // save off id and token for saving state
-          var response = JSON.parse(req.responseText);
-          saveState();
-        };
-        req.send(JSON.stringify({state: event.data.state, token: token}));
-        break;
-    }
-  }
-  // console.log("MESSAGE");
-};
 
 // test if transferables are supported in browser
 // var ab = new ArrayBuffer(1);

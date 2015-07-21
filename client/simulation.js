@@ -79,12 +79,15 @@ if (this.importScripts) {
       case "saveState":
         postMessage({command: "stateSaved", state: serialize()});
         break;
+      case "update":
+        update();
+        postMessage({command: "updateCompleted"});
+        break;
     }
   };
 
   var programOpLimit = 32;
   var registerSize = 128;
-  var cyclesPerSecond = 60;
   var crudSpawnRate = 0.000005;
   // var crudSpawnRate = 0;
   var cellSpawnRate = 0.00000001;
@@ -108,7 +111,7 @@ if (this.importScripts) {
 
   // TODO: change update speed to variable
   var updateLagCounter = 0;
-  setInterval(function update() {
+  function update() {
     var updateStartTime = new Date().getTime();
 
     // add any cells born last cycle
@@ -234,7 +237,7 @@ if (this.importScripts) {
         programOpLimit = 32;
       }
     }
-  }, 1000 / cyclesPerSecond);
+  }
 
   // limit not included
   var rand = function(limit) {
