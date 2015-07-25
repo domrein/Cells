@@ -216,15 +216,11 @@ if (this.importScripts) {
     // if simulation is lagging, start pulling out crud
     var updateDuration = new Date().getTime() - updateStartTime;
     if (throttle) {
-      if (updateDuration > 15) {
+      if (updateDuration > 14) {
         updateLagCounter ++;
       }
       else {
         updateLagCounter = 0;
-        // updateLagCounter --;
-        // if (updateLagCounter < 0) {
-        //   updateLagCounter = 0;
-        // }
       }
       for (i = 1; i * 50 + throttleTolerance < updateLagCounter; i ++) {
         cruds.shift();
