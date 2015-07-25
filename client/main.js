@@ -40,6 +40,7 @@ var renderScene = false;
 
 var worldWidth = 150000;
 var worldHeight = 150000;
+var numWorkers = 4;
 
 var cyclesPerSecond = 60;
 // render/controls loop
@@ -107,8 +108,8 @@ setInterval(function() {
       var numCruds = (simulation.crudBuffer.byteLength - 4) / 4 / 2;
       for (var i = 0; i < numCruds; i ++) {
         renderCrud(
-          simulation.crudView[i * 2] + worldWidth * index,
-          simulation.crudView[i * 2 + 1]
+          simulation.crudView[i * 2] + worldWidth * (index % layoutWidth),
+          simulation.crudView[i * 2 + 1] + worldHeight * Math.floor(index / layoutWidth)
         );
       }
       var numCellProps = 6;
@@ -116,8 +117,8 @@ setInterval(function() {
       for (i = 0; i < numCells; i ++) {
         renderCell(
           // TEMP: just line up all simulations horizontally
-          simulation.cellView[i * numCellProps] + worldWidth * index,
-          simulation.cellView[i * numCellProps + 1],
+          simulation.cellView[i * numCellProps] + worldWidth * (index % layoutWidth),
+          simulation.cellView[i * numCellProps + 1] + worldHeight * Math.floor(index / layoutWidth),
           simulation.cellView[i * numCellProps + 2],
           simulation.cellView[i * numCellProps + 3],
           simulation.cellView[i * numCellProps + 4],
@@ -194,19 +195,20 @@ function request(method, url, body, callback) {
 // spin up several simulations
 // TODO: add settings to control number of workers
 var simulations = [];
-for (var i = 0; i < 4; i ++) {
+for (var i = 0; i < numWorkers; i ++) {
   var simulation = new Worker("simulation.js");
-
 
   simulation.onmessage = function(event) {
     // console.log(event);
     // console.log("after send:  " + Date.now());
 
     var simData = null;
+    var simIndex = 0;
     // TODO: find a better way of finding this without looping over all sims
     for (i = 0; i < simulations.length; i ++) {
       if (simulations[i].worker === event.target) {
         simData = simulations[i];
+        simIndex = i;
       }
     }
     // // render scene
@@ -258,6 +260,54 @@ for (var i = 0; i < 4; i ++) {
         case "updateCompleted":
           simData.updating = false;
           break;
+        case "migrateCell":
+          // figure out where this cell needs to go
+          // TODO: cells move, then the migrators are puled out of simulations, then collision runs, then migrators are put back in
+          // this means that migrators skip a cycle of collision. Think of a fix for that.
+
+          // TODO: cell could migrate diagonally if it's moving fast. That should be handled now anyways, it'll just take an extra cycle for another migration
+          var targetSim = null;
+          switch (event.data.direction) {
+            case "left":
+              if (simIndex % layoutWidth === 0) {
+                targetSim = simulations[simIndex + layoutWidth - 1];
+              }
+              else {
+                targetSim = simulations[simIndex -1];
+              }
+              break;
+            case "right":
+              if (simIndex % layoutWidth === layoutWidth - 1) {
+                targetSim = simulations[simIndex - layoutWidth + 1];
+              }
+              else {
+                targetSim = simulations[simIndex + 1];
+              }
+              break;
+            case "up":
+              if (simIndex < layoutWidth) {
+                targetSim = simulations[simulations.length - layoutWidth + simIndex];
+              }
+              else {
+                targetSim = simulations[simIndex - layoutWidth];
+              }
+              break;
+            case "down":
+              if (simIndex >= simulations.length - layoutWidth) {
+                targetSim = simulations[simIndex % layoutWidth];
+              }
+              else {
+                targetSim = simulations[simIndex + layoutWidth];
+              }
+              break;
+            default:
+              // Invalid migration. Kill cell and log warning.
+              console.log("Invalid migration");
+          }
+          if (targetSim) {
+            targetSim.worker.postMessage({command: "migrateCell", cell: event.data.cell});
+          }
+          break;
       }
     }
     // console.log("MESSAGE");
@@ -272,6 +322,27 @@ for (var i = 0; i < 4; i ++) {
     cellView: new Int32Array(),
   });
 }
+
+var layoutWidth = 0;
+var layoutHeight = 0;
+// calc layout using factors (for world wrapping)
+// layout is rectangle with smallest possible sides, width is larger if the sides aren't even
+function calcLayout() {
+  var high = simulations.length;
+  var i = 1;
+  var low = i;
+  while (i < high) {
+    if (simulations.length % i === 0) {
+      low = i;
+      high = simulations.length / low;
+    }
+    i ++;
+  }
+
+  layoutWidth = high;
+  layoutHeight = low;
+}
+calcLayout();
 
 // test if transferables are supported in browser
 // var ab = new ArrayBuffer(1);

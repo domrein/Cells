@@ -354,6 +354,7 @@ Cell.prototype.deserialize = function(data) {
   this.registers = data.registers;
 
   this.updateColor();
+  this.optimizeProgram();
 };
 
 Cell.prototype.serialize = function() {

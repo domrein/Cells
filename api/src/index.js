@@ -27,7 +27,7 @@ _http.createServer(function(req, res) {
         req.connection.destroy();
       }
     });
-    req.on("end", function () {
+    req.on("end", function() {
       console.log("-----------------");
       console.log(rawBody);
       console.log("-----------------");

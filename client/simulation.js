@@ -62,8 +62,6 @@ grow
 */
 
 // save off coords for crud
-// if crud.x <
-
 "use strict";
 
 var world = {width: 150000, height: 150000};
@@ -82,6 +80,11 @@ if (this.importScripts) {
       case "update":
         update();
         postMessage({command: "updateCompleted"});
+        break;
+      case "migrateCell":
+        var cell = new Cell();
+        cell.deserialize(event.data.cell);
+        cells.push(cell);
         break;
     }
   };
@@ -135,50 +138,19 @@ if (this.importScripts) {
       }
     }
 
-    // block cells from leaving world
     cells.forEach(function(cell) {
       cell.update();
-      if (cell.rect.x < 0) {
-        if (screenWrapX) {
-          cell.rect.x += world.width;
-        }
-        else {
-          cell.rect.x = 0;
-        }
-      }
-      else if (cell.rect.x > world.width) {
-        if (screenWrapX) {
-          cell.rect.x %= world.width;
-        }
-        else {
-          cell.rect.x = world.width;
-        }
-      }
-      if (cell.rect.y < 0) {
-        if (screenWrapY) {
-          cell.rect.y += world.height;
-        }
-        else {
-          cell.rect.y = 0;
-        }
-      }
-      else if (cell.rect.y > world.height) {
-        if (screenWrapY) {
-          cell.rect.y %= world.height;
-        }
-        else {
-          cell.rect.y = world.height;
-        }
-      }
     });
 
     runCollision();
+
     // remove dead entities
-    for (var i = cells.length - 1; i >= 0; i --) {
+    for (i = cells.length - 1; i >= 0; i --) {
       if (!cells[i].alive) {
         cells.splice(i, 1);
       }
     }
+
     for (i = cruds.length - 1; i >= 0; i --) {
       var crud = cruds[i];
       if (!crud.alive) {
@@ -212,6 +184,34 @@ if (this.importScripts) {
       cellView[index * numCellProps + 5 + 1] = Math.round(cell.pulseAngle);
     });
     postMessage(cellBuffer, [cellBuffer]);
+
+    // migrate cells that leave world
+    for (var i = cells.length - 1; i >= 0; i --) {
+      var cell = cells[i];
+      cell.update();
+
+      if (cell.rect.x < 0 || cell.rect.x > world.width || cell.rect.y < 0 || cell.rect.y > world.height) {
+        var direction = "";
+        if (cell.rect.x < 0) {
+          direction = "left";
+          cell.rect.x += world.width;
+        }
+        else if (cell.rect.x > world.width) {
+          direction = "right";
+          cell.rect.x %= world.width;
+        }
+        if (cell.rect.y < 0) {
+          direction = "up";
+          cell.rect.y += world.height;
+        }
+        else if (cell.rect.y > world.height) {
+          direction = "down";
+          cell.rect.y %= world.height;
+        }
+        postMessage({command: "migrateCell", direction: direction, cell: cell.serialize()});
+        cells.splice(i, 1);
+      }
+    }
 
     // if simulation is lagging, start pulling out crud
     var updateDuration = new Date().getTime() - updateStartTime;
