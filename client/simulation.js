@@ -517,6 +517,7 @@ if (this.importScripts) {
     }
   };
 
+  // TODO: this array only contains data from the current simulation. Data from all simulations should be available to the cells.
   var syncFlatArrays = function() {
     flatCruds = [];
     cruds.forEach(function(crud) {
@@ -537,7 +538,6 @@ if (this.importScripts) {
     world.height = state.settings.height;
     programOpLimit = state.settings.programOpLimit;
     registerSize = state.settings.registerSize;
-    cyclesPerSecond = state.settings.cyclesPerSecond;
     crudSpawnRate = state.settings.crudSpawnRate;
     cellSpawnRate = state.settings.cellSpawnRate;
     programMutationRate = state.settings.programMutationRate;
@@ -569,7 +569,6 @@ if (this.importScripts) {
         height: world.height,
         programOpLimit: programOpLimit,
         registerSize: registerSize,
-        cyclesPerSecond: cyclesPerSecond,
         crudSpawnRate: crudSpawnRate,
         cellSpawnRate: cellSpawnRate,
         programMutationRate: programMutationRate,

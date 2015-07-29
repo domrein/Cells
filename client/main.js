@@ -6,7 +6,7 @@ var renderCell = function(x, y, size, color, rotation, pulseAngle) {
   x /= camera.zoom;
   y /= camera.zoom;
   size /= camera.zoom;
-  // TODO: see if this check is really an optimization
+  // only draw onscreen cells
   if (x + size > camera.x || x - size < camera.x + worldWidth / camera.zoom || y + size > camera.y || y - size < camera.y + worldHeight / camera.zoom) {
     size += size / 10 * Math.sin(pulseAngle * Math.PI / 180);
     var hexColor = color.toString(16);
@@ -160,42 +160,56 @@ function request(method, url, body, callback) {
   req.send(body);
 }
 
-// function saveState() {
-//   setTimeout(function() {
-//     simulation.postMessage({command: "saveState"});
-//   }, 1000 * 60 * 0.5);
-// }
-//
-// var id = localStorage.getItem("id");
-// var token = localStorage.getItem("token");
-//
-// // TEMP: ignore saved state
+function saveState() {
+  setTimeout(function() {
+    simulations.forEach(function(simulation) {
+      simulation.worker.postMessage({command: "saveState"});
+    });
+  }, 1000 * 60 * 0.5);
+}
+
+var id = localStorage.getItem("id");
+var token = localStorage.getItem("token");
+
+// TEMP: ignore saved state
 // id = null;
 // token = null;
-//
-// if (id && token) {
-//   request("GET", "http://localhost:3000/v1/worlds/" + id + "/state", function(response) {
-//     if (response.data.state) {
-//       simulation.postMessage({command: "loadState", state: response.data.state});
-//     }
-//     saveState();
-//   });
-// }
-// else {
-//   request("POST", "http://localhost:3000/v1/worlds", function(response) {
-//     id = response.data.id;
-//     token = response.data.token;
-//     localStorage.setItem("id", id);
-//     localStorage.setItem("token", token);
-//     saveState();
-//   });
-// }
+
+if (id && token) {
+  request("GET", "http://localhost:3000/v1/worlds/" + id + "/state", function(response) {
+    if (response.data.states) {
+      if (response.data.states.length !== numWorkers) {
+        numWorkers = response.data.states.length;
+      }
+      while (simulations.length < numWorkers) {
+        createSimulation();
+      }
+      response.data.states.forEach(function(state, index) {
+        simulations[index].worker.postMessage({command: "loadState", state: state});
+      });
+    }
+    saveState();
+  });
+}
+else {
+  request("POST", "http://localhost:3000/v1/worlds", function(response) {
+    id = response.data.id;
+    token = response.data.token;
+    localStorage.setItem("id", id);
+    localStorage.setItem("token", token);
+    saveState();
+  });
+}
 
 
 // spin up several simulations
 // TODO: add settings to control number of workers
 var simulations = [];
-for (var i = 0; i < numWorkers; i ++) {
+for (i = 0; i < numWorkers; i ++) {
+  createSimulation();
+}
+
+function createSimulation() {
   var simulation = new Worker("simulation.js");
 
   simulation.onmessage = function(event) {
@@ -242,21 +256,37 @@ for (var i = 0; i < numWorkers; i ++) {
     }
     else {
       switch (event.data.command) {
-        // case "stateSaved":
-        //   // send off saved state to server
-        //   var req = new XMLHttpRequest();
-        //   req.open("PUT", "http://localhost:3000/v1/worlds/" + id + "/state", true);
-        //   req.onreadystatechange = function() {
-        //     if (req.readyState !== 4 || req.status !== 200) {
-        //       // TODO: find out why the save failed
-        //       return;
-        //     }
-        //     // save off id and token for saving state
-        //     var response = JSON.parse(req.responseText);
-        //     saveState();
-        //   };
-        //   req.send(JSON.stringify({state: event.data.state, token: token}));
-        //   break;
+        case "stateSaved":
+          simData.savedState = event.data.state;
+          // send off saved state to server if all states have been saved
+          var stateReady = simulations.reduce(function(prev, curr) {
+            return prev && curr.savedState;
+          }, true);
+          if (stateReady) {
+            var states = simulations.map(function(simulation) {
+              // TODO: don't serialize the data then parse it here just to encode it again when the request is sent
+              return JSON.parse(simulation.savedState);
+            });
+
+            var req = new XMLHttpRequest();
+            req.open("PUT", "http://localhost:3000/v1/worlds/" + id + "/state", true);
+            req.onreadystatechange = function() {
+              if (req.readyState !== 4 || req.status !== 200) {
+                // TODO: find out why the save failed
+                return;
+              }
+              // save off id and token for saving state
+              var response = JSON.parse(req.responseText);
+              saveState();
+            };
+            req.send(JSON.stringify({version: 1, states: JSON.stringify(states), token: token}));
+
+            // clear out savedState data
+            simulations.forEach(function(simulation) {
+              simulation.savedState = null;
+            });
+          }
+          break;
         case "updateCompleted":
           simData.updating = false;
           break;
@@ -320,6 +350,7 @@ for (var i = 0; i < numWorkers; i ++) {
     crudView: new Int32Array(),
     cellBuffer: new ArrayBuffer(),
     cellView: new Int32Array(),
+    savedState: null,
   });
 }
 

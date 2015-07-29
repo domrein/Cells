@@ -7,17 +7,17 @@ let _redis = require("../common/redis");
 // worlds:worldId:state
 module.exports = {
   get(worldId, callback) {
-    _redis.hget(`worlds:${worldId}`, "state", function(err, reply) {
-      let state = null;
+    _redis.hget(`worlds:${worldId}`, "states", function(err, reply) {
+      let states = null;
       try {
-        state = JSON.parse(reply);
+        states = JSON.parse(reply);
       }
       catch (err) {
       }
-      callback(err, {state: state});
+      callback(err, {states: states});
     });
   },
-  put(worldId, state, token, callback) {
+  update(worldId, states, version, token, callback) {
     _async.series([
       function(series) {
         _redis.hget(`worlds:${worldId}`, "token", function(err, reply) {
@@ -29,7 +29,7 @@ module.exports = {
         });
       },
       function(series) {
-        _redis.hset(`worlds:${worldId}`, "state", state, function(err, reply) {
+        _redis.hmset(`worlds:${worldId}`, "states", states, "version", version, function(err, reply) {
           series(err, reply);
         });
       }

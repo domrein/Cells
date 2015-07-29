@@ -5,7 +5,7 @@ let _async = require("async");
 let _redis = require("../common/redis");
 
 module.exports = {
-  post(callback) {
+  create(callback) {
     let worldId = -1;
     let token = "";
     _async.series([
