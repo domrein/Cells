@@ -553,11 +553,13 @@ if (this.importScripts) {
     cells = state.cells.map(function(cellData) {
       var cell = new Cell();
       cell.deserialize(cellData);
+      tree.addChild(cell);
       return cell;
     });
     cruds = state.cruds.map(function(crudData) {
       var crud = new Crud();
       crud.deserialize(crudData);
+      tree.addChild(crud);
       return crud;
     });
   };
