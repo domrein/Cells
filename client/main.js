@@ -176,7 +176,7 @@ var token = localStorage.getItem("token");
 // token = null;
 
 if (id && token) {
-  request("GET", "http://localhost:3000/v1/worlds/" + id + "/state", function(response) {
+  request("GET", "http://cellsapi.paulmilham.com/v1/worlds/" + id + "/state", function(response) {
     if (response.data.states) {
       if (response.data.states.length !== numWorkers) {
         numWorkers = response.data.states.length;
@@ -192,7 +192,7 @@ if (id && token) {
   });
 }
 else {
-  request("POST", "http://localhost:3000/v1/worlds", function(response) {
+  request("POST", "http://cellsapi.paulmilham.com/v1/worlds", function(response) {
     id = response.data.id;
     token = response.data.token;
     localStorage.setItem("id", id);
@@ -269,7 +269,7 @@ function createSimulation() {
             });
 
             var req = new XMLHttpRequest();
-            req.open("PUT", "http://localhost:3000/v1/worlds/" + id + "/state", true);
+            req.open("PUT", "http://cellsapi.paulmilham.com/v1/worlds/" + id + "/state", true);
             req.onreadystatechange = function() {
               if (req.readyState !== 4 || req.status !== 200) {
                 // TODO: find out why the save failed
