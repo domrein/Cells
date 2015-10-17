@@ -2,6 +2,9 @@
 
 "use strict";
 
+var apiUrl = "cellsapi.paulmilham.com";
+// var apiUrl = "localhost:3000";
+
 var renderCell = function(x, y, size, color, rotation, pulseAngle) {
   x /= camera.zoom;
   y /= camera.zoom;
@@ -49,8 +52,6 @@ setInterval(function() {
 
   // call update on simulations
   var updating = simulations.reduce(function(prev, curr) {
-    return prev.updating || curr.updating;
-  });
     return prev || curr.updating;
   }, false);
   if (!updating) {
@@ -178,7 +179,7 @@ var token = localStorage.getItem("token");
 // token = null;
 
 if (id && token) {
-  request("GET", "http://cellsapi.paulmilham.com/v1/worlds/" + id + "/state", function(response) {
+  request("GET", "http://" + apiUrl + "/v1/worlds/" + id + "/state", function(response) {
     if (response.data.states) {
       if (response.data.states.length !== numWorkers) {
         numWorkers = response.data.states.length;
@@ -194,7 +195,7 @@ if (id && token) {
   });
 }
 else {
-  request("POST", "http://cellsapi.paulmilham.com/v1/worlds", function(response) {
+  request("POST", "http://" + apiUrl + "/v1/worlds", function(response) {
     id = response.data.id;
     token = response.data.token;
     localStorage.setItem("id", id);
@@ -271,7 +272,7 @@ function createSimulation() {
             });
 
             var req = new XMLHttpRequest();
-            req.open("PUT", "http://cellsapi.paulmilham.com/v1/worlds/" + id + "/state", true);
+            req.open("PUT", "http://" + apiUrl + "/v1/worlds/" + id + "/state", true);
             req.onreadystatechange = function() {
               if (req.readyState !== 4 || req.status !== 200) {
                 // TODO: find out why the save failed
