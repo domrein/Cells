@@ -51,6 +51,8 @@ setInterval(function() {
   var updating = simulations.reduce(function(prev, curr) {
     return prev.updating || curr.updating;
   });
+    return prev || curr.updating;
+  }, false);
   if (!updating) {
     simulations.forEach(function(simulation) {
       simulation.updating = true;
